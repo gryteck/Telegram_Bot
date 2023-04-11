@@ -5,6 +5,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, callback_query
+import emoji
 
 from wait import Wait
 from db import BotDB
@@ -193,7 +194,7 @@ async def menu_answer(message: types.Message, state: FSMContext):
             await Wait.my_form_answer.set()
 
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        buttons = ["Лайк", "Скип", "Вернуться назад"]
+        buttons = ["❤️", "👎", "Вернуться назад"]
         keyboard.add(*buttons)
 
         form = get_random_form(list_of_forms)
@@ -240,7 +241,7 @@ async def menu_answer(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=Wait.form_reaction)
 async def form_reaction(message: types.Message, state: FSMContext):
-    if message.text == "Лайк":
+    if message.text == "❤️":
         # await state.update_data(like_id=message.from_user.id)
 
         data = await state.get_data()
@@ -255,7 +256,7 @@ async def form_reaction(message: types.Message, state: FSMContext):
         liked_id = data["liked_id"]
 
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        buttons = ["Лайк", "Скип", "Вернуться назад"]
+        buttons = ["❤️", "👎", "Вернуться назад"]
         keyboard.add(*buttons)
 
         await bot.send_message(text="Вы понравились этому человеку: ", chat_id=liked_id)
@@ -269,13 +270,13 @@ async def form_reaction(message: types.Message, state: FSMContext):
         await bot.send_photo(photo=open(f"photos/{photo_id}.jpg", "rb"), caption=caption, chat_id=message.from_user.id)
         await Wait.form_reaction.set()
 
-    elif message.text == "Скип":
+    elif message.text == "👎":
 
         data = await state.get_data()
         list_of_forms = BotDB.find_forms(message.from_user.id, data["interest"], data["city"], data["age"])
 
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        buttons = ["Лайк", "Скип", "Вернуться назад"]
+        buttons = ["❤️", "👎", "Вернуться назад"]
         keyboard.add(*buttons)
 
         form = get_random_form(list_of_forms)
