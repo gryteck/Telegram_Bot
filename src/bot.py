@@ -37,10 +37,10 @@ async def restart(message: types.Message, state: FSMContext):
 
 @dp.message_handler(commands="start", state="*")
 async def form_start(message: types.Message):
-    if (not BotDB.user_exists(message.from_user.id)):
+    if not BotDB.user_exists(message.from_user.id):
         BotDB.add_user(message.from_user.id)
 
-    if (BotDB.form_exists(message.from_user.id)):
+    if BotDB.form_exists(message.from_user.id):
 
         form = BotDB.get_form(message.from_user.id)
         a = form[0]
