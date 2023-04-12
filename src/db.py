@@ -38,7 +38,7 @@ class BotDB:
         VALUES(?, ?, ?, ?, ?, ?, ?)", (self.get_user_id(user_id), name, age, city.title(), text, gender, interest))
         return self.conn.commit()
 
-    def add(user_id, gender, interest, name, age, city, text):
+    def add(user_id, gender, interest, name, age, city, text, self=None):
         self.cursor.execute("INSERT INTO `forms` (`users_id`, `name`, `age`, `city`, `text`, `gender`, `interest`) \
         VALUES(?, ?, ?, ?, ?, ?, ?)", (user_id, name, age, city.title(), text, gender, interest))
         return self.conn.commit()
@@ -72,8 +72,12 @@ class BotDB:
         return result.fetchall()
 
     def restart(self):
-        self.cursor.execute("DELETE FROM `forms` WHERE `users_id` = 15")
-        self.cursor.execute("DELETE FROM `forms` WHERE `users_id` = 16")
+        self.cursor.execute("DELETE FROM `forms` WHERE `users_id` = 20")
+        self.cursor.execute("DELETE FROM `forms` WHERE `users_id` = 21")
+        return self.conn.commit()
+
+    def drop(self):
+        self.cursor.execute("DELETE FROM `forms`")
         return self.conn.commit()
 
     def close(self):

@@ -2,7 +2,6 @@ import logging
 
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, callback_query
 import emoji
@@ -33,11 +32,11 @@ def get_random_form(list_of_forms):
 
 @dp.message_handler(commands="res", state="*")
 async def restart(message: types.Message, state: FSMContext):
-    BotDB.restart()
+    BotDB.drop()
 
 
 @dp.message_handler(commands="start", state="*")
-async def form_start(message: types.Message):
+async def form_start(message: types.Message, state: FSMContext):
     if not BotDB.user_exists(message.from_user.id):
         BotDB.add_user(message.from_user.id)
 
@@ -154,6 +153,7 @@ async def download_photo(message: types.Message, state: FSMContext):
     print(d)
 
     BotDB.add_form(message.from_user.id, d[0], d[1], d[2], d[3], d[4], d[5])
+    await state.update_data(count=1)
 
     caption = show_form(d[2], d[3], d[4], d[5])
     await message.answer("Вот ваша анкета: ")
@@ -241,49 +241,35 @@ async def menu_answer(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=Wait.form_reaction)
 async def form_reaction(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    list_of_forms = BotDB.find_forms(message.from_user.id, data["interest"], data["city"], data["age"])
+
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    buttons = ["❤️", "👎", "Вернуться назад"]
+    keyboard.add(*buttons)
+
+    form = get_random_form(list_of_forms)
+    caption = form[0]
+    photo_id = form[1]
+
+    c = data["count"]
+    if c % 7 == 0:
+        await message.answer(text="хера ты баклажан")
+
+    await state.update_data(count=c+1)
+
     if message.text == "❤️":
-        # await state.update_data(like_id=message.from_user.id)
-
-        data = await state.get_data()
-        d = list(data.values())
-
-        form = BotDB.get_form(message.from_user.id)
-        a = form[0]
-        caption = show_form(a[2], a[3], a[4], a[5])
-
-        list_of_forms = BotDB.find_forms(message.from_user.id, data["interest"], data["city"], data["age"])
-
         liked_id = data["liked_id"]
-
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        buttons = ["❤️", "👎", "Вернуться назад"]
-        keyboard.add(*buttons)
 
         await bot.send_message(text="Вы понравились этому человеку: ", chat_id=liked_id)
         await bot.send_photo(photo=open(f"photos/{message.from_user.id}.jpg", "rb"), chat_id=liked_id, caption=caption)
         await bot.send_message(text=f"Начинай общаться, если понравлися(лась) - @{message.from_user.username}", chat_id=liked_id)
 
-        form = get_random_form(list_of_forms)
-        caption = form[0]
-        photo_id = form[1]
-
         await bot.send_photo(photo=open(f"photos/{photo_id}.jpg", "rb"), caption=caption, chat_id=message.from_user.id)
         await Wait.form_reaction.set()
 
     elif message.text == "👎":
-
-        data = await state.get_data()
-        list_of_forms = BotDB.find_forms(message.from_user.id, data["interest"], data["city"], data["age"])
-
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        buttons = ["❤️", "👎", "Вернуться назад"]
-        keyboard.add(*buttons)
-
-        form = get_random_form(list_of_forms)
-        caption = form[0]
-        photo_id = form[1]
         await bot.send_photo(photo=open(f"photos/{photo_id}.jpg", "rb"), caption=caption, chat_id=message.from_user.id)
-
         await Wait.form_reaction.set()
 
     elif message.text == "Вернуться назад":
