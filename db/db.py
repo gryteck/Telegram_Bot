@@ -42,11 +42,6 @@ class BotDB:
         VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)", (self.get_user_id(user_id), name, age, city.title(), text, gender, interest, liked, username))
         return self.conn.commit()
 
-    def add(user_id, gender, interest, name, age, city, text, self=None):
-        self.cursor.execute("INSERT INTO `forms` (`users_id`, `name`, `age`, `city`, `text`, `gender`, `interest`) \
-        VALUES(?, ?, ?, ?, ?, ?, ?)", (user_id, name, age, city.title(), text, gender, interest))
-        return self.conn.commit()
-
     def update_text(self, user_id, new_text):
         self.cursor.execute("UPDATE `forms` SET `text` = ? WHERE `users_id` = ?", (new_text, self.get_user_id(user_id)))
         return self.conn.commit()
@@ -69,7 +64,6 @@ class BotDB:
             gender = "парень"
         if interest == "девушки":
             gender = "девушка"
-
         result = self.cursor.execute("SELECT * FROM `forms` WHERE `users_id` != ? AND `gender` = ? AND `age` \
         BETWEEN ? AND ?", (self.get_user_id(user_id), gender, int(age) - 5, int(age) + 5))
 
