@@ -15,14 +15,39 @@ def get_random_form(list_of_forms):
     return [b.show_form(a[2], a[3], a[4], a[5]), BotDB.get_photo_id(a[1])]
 
 
+@dp.message_handler(commands="info", state="*")
+async def info(message: types.Message, state: FSMContext):
+    await bot.send_photo(photo=open(f"photos/info.png", "rb"), chat_id=message.from_user.id,
+                         caption=t.info, reply_markup=k.back())
+    await Wait.like_list.set()
+
+
+@dp.message_handler(commands="like", state="*")
+async def like(message: types.Message, state: FSMContext):
+    jd = message.from_user.id
+    liked_str = str(BotDB.get_user_liked(message.from_user.id))
+    if len(liked_str.split()) > 1:
+        liked_id = liked_str.split()[-1]
+        await state.update_data(liked_id=liked_id)
+        await message.answer("Вы понравились данному пользователю:", reply_markup=k.key_reactions())
+        await bot.send_photo(photo=open(f"photos/{liked_id}.jpg", "rb"), chat_id=jd, caption=cap(liked_id))
+        await state.update_data(liked_id=liked_id)
+        BotDB.update_liked(message.from_user.id, b.crop_list(liked_str))
+        await Wait.like_list.set()
+    else:
+        await message.answer("Вы никому не понравились:(")
+        await bot.send_photo(photo=open(f"photos/{jd}.jpg", "rb"), caption=cap(jd), chat_id=jd)
+        await message.answer(t.menu_main_text, reply_markup=k.key_123())
+        await Wait.menu_answer.set()
+
+
 @dp.message_handler(commands="res", state="*")
-async def restart():
+async def restart(message: types.Message, state: FSMContext):
     BotDB.drop()
 
 
 @dp.message_handler(commands="start", state="*")
 async def form_start(message: types.Message, state: FSMContext):
-    global id
     id = message.from_user.id
     if not BotDB.user_exists(message.from_user.id):
         BotDB.add_user(message.from_user.id)
@@ -105,13 +130,12 @@ async def text(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=Wait.photo, content_types=["photo"])
 async def download_photo(message: types.Message, state: FSMContext):
+    id = message.from_user.id
     await message.photo[-1].download(destination_file=f"photos/{message.from_user.id}.jpg")
     await state.update_data(liked="0", username=message.from_user.username, count=1)
-    data = await state.get_data()
-    d = list(data.values())
-    print(d)
-
-    BotDB.add_form(message.from_user.id, d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7])
+    d = await state.get_data()
+    print(list(d.values()))
+    BotDB.add_form(id, d["gender"], d["interest"], d["name"], d["age"], d["city"], d["text"], d["liked"], d["username"])
     await message.answer("Вот ваша анкета: ")
     await bot.send_photo(photo=open(f"photos/{id}.jpg", "rb"), caption=cap(id), chat_id=id)
 
@@ -121,6 +145,7 @@ async def download_photo(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=Wait.menu_answer)
 async def menu_answer(message: types.Message, state: FSMContext):
+    id = message.from_user.id
     if message.text == "1":
         form = BotDB.get_form(message.from_user.id)
         a = form[0]
@@ -143,8 +168,6 @@ async def menu_answer(message: types.Message, state: FSMContext):
     elif message.text == "3":
         await message.answer("Вы уверены, что хотите удалить свою анкету?", reply_markup=k.key_yesno())
         await Wait.delete_confirm.set()
-    elif message.text == "/like":
-        await Wait.like.set()
     else:
         await message.answer("Выберите вариант из кнопок ниже")
         return
@@ -152,13 +175,16 @@ async def menu_answer(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=Wait.form_reaction)
 async def form_reaction(message: types.Message, state: FSMContext):
+    id = message.from_user.id
     data = await state.get_data()
-    list_of_forms = BotDB.find_forms(message.from_user.id, data["interest"], data["city"], data["age"])
+    form = BotDB.get_form(message.from_user.id)
+    a = form[0]
+    list_of_forms = BotDB.find_forms(id, a[7], a[4], a[3])
     form = get_random_form(list_of_forms)
-    count = data["count"]
-    if count % 7 == 0:
-        await message.answer(text="хера ты баклажан")
-    await state.update_data(count=count+1)
+#    count = data["count"]
+#    if count % 7 == 0:
+#        await message.answer(text="хера ты баклажан")
+#    await state.update_data(count=count+1)
 
     if message.text == "❤️":
         liked_id = data["liked_id"]
@@ -180,40 +206,61 @@ async def form_reaction(message: types.Message, state: FSMContext):
         return
 
 
-@dp.message_handler(state=Wait.like)
+@dp.message_handler(commands="like", state="*")
 async def like(message: types.Message, state: FSMContext):
+    jd = message.from_user.id
     liked_str = str(BotDB.get_user_liked(message.from_user.id))
     if len(liked_str.split()) > 1:
         liked_id = liked_str.split()[-1]
         await state.update_data(liked_id=liked_id)
         await message.answer("Вы понравились данному пользователю:", reply_markup=k.key_reactions())
-        await bot.send_photo(photo=open(f"photos/{liked_id}.jpg", "rb"), chat_id=id, caption=cap(liked_id))
+        await bot.send_photo(photo=open(f"photos/{liked_id}.jpg", "rb"), chat_id=jd, caption=cap(liked_id))
         await state.update_data(liked_id=liked_id)
-        BotDB.update_liked(id, b.crop_list(liked_str))
-        await Wait.like_reaction.set()
+        BotDB.update_liked(message.from_user.id, b.crop_list(liked_str))
+        await Wait.like_list.set()
     else:
-        await message.answer("Вы никому не понравились:(", reply_markup=k.key_123())
-        await bot.send_photo(photo=open(f"photos/{id}.jpg", "rb"), caption=cap(id), chat_id=id)
-        await message.answer(t.my_form_text, reply_markup=k.key_1234())
-        await Wait.my_form_answer.set()
+        await message.answer("Вы никому не понравились:(")
+        await bot.send_photo(photo=open(f"photos/{jd}.jpg", "rb"), caption=cap(jd), chat_id=jd)
+        await message.answer(t.menu_main_text, reply_markup=k.key_123())
+        await Wait.menu_answer.set()
 
 
-@dp.message_handler(state=Wait.like_reaction)
-async def like_reaction(message: types.Message, state: FSMContext):
+@dp.message_handler(state=Wait.like_list)
+async def like_list(message: types.Message, state: FSMContext):
+    liked_str = str(BotDB.get_user_liked(message.from_user.id))
+    jd = message.from_user.id
     if message.text == "❤️":
         data = await state.get_data()
         liked_id = data["liked_id"]
-        await bot.send_message(text=f"Пиши - @{BotDB.get_username(liked_id)}", chat_id=id)
         await bot.send_message(text="У вас произошел мэтч!: ", chat_id=liked_id)
-        await bot.send_photo(photo=open(f"photos/{id}.jpg", "rb"), chat_id=liked_id, caption=cap(id))
+        await bot.send_photo(photo=open(f"photos/{jd}.jpg", "rb"), chat_id=liked_id, caption=cap(jd))
         await bot.send_message(text=f"Пиши, если понравился(лась) - @{message.from_user.username}", chat_id=liked_id)
-        await Wait.like.set()
-    elif message.text == "":
-        await Wait.like.set()
+
+        await message.answer(text=f"Пиши - @{BotDB.get_username(liked_id)}", reply_markup=k.cont())
+        await message.answer(text="Продолжить смотреть список лайкнувших?", reply_markup=k.cont())
+        await Wait.like_list.set()
+    elif message.text == "Продолжить" or message.text == "👎":
+        if len(liked_str.split()) > 1:
+            liked_id = liked_str.split()[-1]
+            await state.update_data(liked_id=liked_id)
+            await message.answer("Вы понравились данному пользователю:", reply_markup=k.key_reactions())
+            await bot.send_photo(photo=open(f"photos/{liked_id}.jpg", "rb"), chat_id=jd, caption=cap(liked_id))
+            BotDB.update_liked(message.from_user.id, b.crop_list(liked_str))
+            await Wait.like_list.set()
+        else:
+            await message.answer("Вы уже просмотрели всех, кому понравилась ваша анкета")
+            await bot.send_photo(photo=open(f"photos/{jd}.jpg", "rb"), caption=cap(jd), chat_id=jd)
+            await message.answer(t.menu_main_text, reply_markup=k.key_123())
+            await Wait.menu_answer.set()
+    elif message.text == "Вернуться назад":
+        await bot.send_photo(photo=open(f"photos/{jd}.jpg", "rb"), caption=cap(jd), chat_id=jd)
+        await message.answer(t.menu_main_text, reply_markup=k.key_123())
+        await Wait.menu_answer.set()
 
 
 @dp.message_handler(state=Wait.delete_confirm)
 async def delete_confirm(message: types.Message, state: FSMContext):
+    id = message.from_user.id
     if message.text == "Да":
         BotDB.delete_form(message.from_user.id)
         BotDB.delete_user(message.from_user.id)
@@ -229,6 +276,7 @@ async def delete_confirm(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=Wait.my_form_answer)
 async def my_form_answer(message: types.Message, state: FSMContext):
+    id = message.from_user.id
     if message.text == "1":
         BotDB.delete_form(message.from_user.id)
         await message.answer("Для начала выберите свой пол", reply_markup=k.key_gender())
@@ -250,6 +298,7 @@ async def my_form_answer(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=Wait.change_text)
 async def change_text(message: types.Message, state: FSMContext):
+    id = message.from_user.id
     if message.text == "Оставить пустым":
         BotDB.update_text(message.from_user.id, '')
         await bot.send_photo(photo=open(f"photos/{id}.jpg", "rb"), caption=cap(id), chat_id=id)
@@ -267,6 +316,7 @@ async def change_text(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=Wait.change_photo, content_types=["photo"])
 async def change_photo(message: types.Message, state: FSMContext):
+    id = message.from_user.id
     await message.photo[-1].download(destination_file=f"photos/{message.from_user.id}.jpg")
     await message.answer("Вот ваша анкета: ")
     await bot.send_photo(photo=open(f"photos/{id}.jpg", "rb"), caption=cap(id), chat_id=id)

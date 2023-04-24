@@ -13,6 +13,7 @@ liked = " "
 
 rm = liked_array[:-1]
 listToStr = ' '.join([str(elem) for elem in rm])
-
-print(rm)
+if __name__ == "__main__":
+    print("world")
 # print(len(liked.split()))
+print(__name__)

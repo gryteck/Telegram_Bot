@@ -16,5 +16,6 @@ class Wait(StatesGroup):
     delete_confirm = State()
     form_reaction = State()
     match_status = State()
+    like_list = State()
     like = State()
     like_reaction = State()
