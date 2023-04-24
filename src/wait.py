@@ -1,5 +1,6 @@
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
+
 class Wait(StatesGroup):
     choosing_gender = State()
     choosing_interest = State()
@@ -15,5 +16,6 @@ class Wait(StatesGroup):
     delete_confirm = State()
     form_reaction = State()
     match_status = State()
+    like_list = State()
     like = State()
-    like_type = State()
+    like_reaction = State()
