@@ -1,4 +1,4 @@
-from aiogram import Bot, Dispatcher, executor, types
+from aiogram import types
 
 
 def key_123():
@@ -7,16 +7,17 @@ def key_123():
     return keyboard.add(*buttons)
 
 
-def key_reactions():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="Как вам человечек?")
-    buttons = ["❤️", "👎", "Вернуться назад"]
+def react():
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="Оцени",
+                                         one_time_keyboard=True)
+    buttons = ["❤️", "👎", "🚫", "Вернуться назад"]
     return keyboard.add(*buttons)
 
 
 def key_1234():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     buttons = ["1", "2", "3", "4"]
-    return keyboard.add(*buttons)
+    return keyboard.row(*buttons)
 
 
 def key_gender():
@@ -44,7 +45,7 @@ def key_yesno():
 
 def cont():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,
-                                         input_field_placeholder="продолжить смотреть тех, кому вы понравились?")
+                                         input_field_placeholder="продолжить?")
     return keyboard.add("Продолжить")
 
 
@@ -52,4 +53,15 @@ def back():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,
                                          input_field_placeholder="вернуться")
     return keyboard.add("Вернуться назад")
-# def inl_reactions():
+
+
+def ban():
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    buttons = ["✅", "❌", "⁉️", "↩️"]
+    return keyboard.row(*buttons)
+
+
+def match(id):
+    button_url = f'tg://user?id={id}'
+    markup = types.InlineKeyboardMarkup()
+    return markup.add(types.InlineKeyboardButton(text="Написать человечку", url=button_url))

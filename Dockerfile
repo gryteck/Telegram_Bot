@@ -6,4 +6,4 @@ COPY . .
 # install dependencies
 RUN pip3 install -r requirements.txt
 # run app
-CMD ["python3", "src/bot.py"]
+CMD ["python3", "bot.py"]
