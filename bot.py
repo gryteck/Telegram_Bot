@@ -1,6 +1,6 @@
 from src.imp import *
 
-logging.basicConfig(level=logging.INFO, filename='main.log', filemode='a',
+logging.basicConfig(level=logging.INFO, filename='main.log', filemode='w',
                     format='%(asctime)s, %(levelname)s, %(message)s, %(name)s')
 BotDB = BotDB()
 
@@ -58,10 +58,11 @@ async def restart(message: types.Message):
 @dp.message_handler(commands="start", state="*")
 async def form_start(message: types.Message):
     id = message.from_user.id
-    if not BotDB.user_exists(message.from_user.id):
+    if not BotDB.user_exists(id):
         await message.answer(t.hello_text)
-        BotDB.add_user(message.from_user.id)
-    if BotDB.form_exists(message.from_user.id):
+        BotDB.add_user(id)
+        BotDB.add_ban(id)
+    if BotDB.form_exists(id):
         await bot.send_photo(photo=b.ph(id), chat_id=id, caption=b.cap(id))
         await message.answer(t.menu_main_text, reply_markup=k.key_123())
         await Wait.menu_answer.set()
@@ -97,7 +98,7 @@ async def name(message: types.Message, state: FSMContext):
         await message.answer("Недопустимая длина имени")
         return
     await state.update_data(name=message.text)
-    await message.reply(t.set_age)
+    await message.reply(t.set_age+f"{message.text}!")
     await message.answer('Сколько тебе лет?')
     await Wait.age.set()
 
@@ -133,7 +134,7 @@ async def text(message: types.Message, state: FSMContext):
 async def download_photo(message: types.Message, state: FSMContext):
     id = message.from_user.id
     photo_id = message.photo[-1].file_id
-    await state.update_data(liked="0", username=message.from_user.username, count=1, ph=photo_id)
+    await state.update_data(liked="0", username=message.from_user.username, ph=photo_id)
     d = await state.get_data()
     print(list(d.values()))
     BotDB.add_form(d["username"], id, d["gender"], d["interest"], d["name"], d["age"], d["ph"], d["text"], d["liked"])
@@ -148,7 +149,12 @@ async def download_photo(message: types.Message, state: FSMContext):
 async def menu_answer(message: types.Message, state: FSMContext):
     id = message.from_user.id
     if message.text == "1" or message.text == "Продолжить":
-        form = BotDB.get_form(message.from_user.id)
+        BotDB.update_date(id, daily_views)
+        if BotDB.get_count(id) >= daily_views:
+            await message.answer("На сегодня достаточно, приходи завтра")
+            await message.answer(t.menu_main_text, reply_markup=k.key_123())
+            return
+        form = BotDB.get_form(id)
         a = form[0]
         list_of_forms = BotDB.find_forms(id, a[7], a[3])
         try:
@@ -176,6 +182,10 @@ async def menu_answer(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=Wait.form_reaction)
 async def form_reaction(message: types.Message, state: FSMContext):
+    id = message.from_user.id
+    data = await state.get_data()
+    count = BotDB.get_count(id)
+    BotDB.update_date(id, daily_views)
     if message.text not in ("Продолжить", "Вернуться назад", "❤️", "👎", "🚫"):
         await message.reply("Нет такого варианта ответа")
         return
@@ -187,10 +197,11 @@ async def form_reaction(message: types.Message, state: FSMContext):
         await message.answer(t.ban, reply_markup=k.key_1234())
         await Wait.claim.set()
         return
-    id = message.from_user.id
-    data = await state.get_data()
-    count = data["count"]
-    await state.update_data(count=count+1)
+    if count >= daily_views:
+        await message.answer("На сегодня достаточно, приходи завтра")
+        await message.answer(t.menu_main_text, reply_markup=k.key_123())
+        await Wait.menu_answer.set()
+        return
     liked_id = data["liked_id"]
     if count % 9 == 0 and message.text != "❤️":
         await message.answer(text=t.notice, reply_markup=k.cont())
@@ -198,6 +209,8 @@ async def form_reaction(message: types.Message, state: FSMContext):
         return
     if message.text == "❤️" and BotDB.form_exists(liked_id) and not BotDB.user_banned(id):
         liked_str = str(BotDB.get_user_liked(liked_id))
+        if len(liked_str.split()) >= 2:
+            BotDB.update_visible(liked_id, False)
         if str(id) not in liked_str.split():
             liked_str += (" " + str(id))
             await bot.send_message(text=t.liked, chat_id=liked_id)
@@ -233,6 +246,7 @@ async def like_list(message: types.Message, state: FSMContext):
         await Wait.like_list.set()
     elif message.text == "Продолжить" or message.text == "👎" or not BotDB.form_exists(liked_id):
         liked_str = str(BotDB.get_user_liked(id))
+        if len(liked_str.split()) < 21: BotDB.update_visible(id, True)
         while len(BotDB.get_user_liked(id).split()) != 1 and not BotDB.form_exists(liked_str.split()[-1]):
             liked_id = BotDB.get_user_liked(id).split()[-1]
             if BotDB.form_exists(liked_id): break
@@ -277,7 +291,7 @@ async def delete_confirm(message: types.Message):
 async def my_form_answer(message: types.Message):
     id = message.from_user.id
     if message.text == "1":
-        BotDB.delete_form(message.from_user.id)
+        BotDB.delete_form(id)
         await message.answer("Для начала выберите свой пол", reply_markup=k.key_gender())
         await Wait.choosing_gender.set()
     elif message.text == "2":
@@ -353,12 +367,12 @@ async def claim(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=Wait.claim_liked)
 async def claim_liked(message: types.Message, state: FSMContext):
+    id = message.from_user.id
     if message.text not in ("1", "2", "3", "4"):
         await message.reply("Нет такого варианта ответа")
         await Wait.claim_liked.set()
         return
-    liked_str = str(BotDB.get_user_liked(message.from_user.id))
-    id = message.from_user.id
+    liked_str = str(BotDB.get_user_liked(id))
     key = message.text
     data = await state.get_data()
     banned_id = data["liked_id"]
@@ -378,7 +392,7 @@ async def claim_liked(message: types.Message, state: FSMContext):
         await state.update_data(liked_id=liked_id)
         await message.answer(t.like_list, reply_markup=k.react())
         await bot.send_photo(photo=b.ph(liked_id), chat_id=id, caption=b.cap(liked_id))
-        BotDB.update_liked(message.from_user.id, b.crop_list(liked_str))
+        BotDB.update_liked(id, b.crop_list(liked_str))
         await Wait.like_list.set()
     else:
         await message.answer(t.like_list_end)
@@ -410,6 +424,7 @@ async def admin_menu(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=Wait.admin_ban_list)
 async def admin_ban_list(message: types.Message, state: FSMContext):
+    id = message.from_user.id
     if message.text not in ("↩️", "✅", "❌", "⁉️"):
         await message.answer("Ты че мудришь, норм отвечай")
         return
@@ -417,7 +432,6 @@ async def admin_ban_list(message: types.Message, state: FSMContext):
         await message.answer(t.admin_menu, reply_markup=k.key_1234())
         await Wait.admin_menu.set()
         return
-    id = message.from_user.id
     data = await state.get_data()
     banned_id = data["banned_id"]
     f = b.get_random_form(BotDB.find_banned())

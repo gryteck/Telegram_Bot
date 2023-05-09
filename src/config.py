@@ -1,5 +1,4 @@
 from aiogram import Bot, Dispatcher
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
 
 bot = Bot(token="5911241134:AAHuxXDW48E6rg8S5E_byTSWhIxQmMSDIk8")
@@ -11,3 +10,8 @@ db_url = 'postgresql://HETdQSqYXMoTjDWbzmuxmJqlvEfKHfpO:lZETgqCIlOzwyvfPCUCgTOPi
 db_url_local = 'postgresql://postgres:test@localhost:5432/postgres'
 admins = [680359970, 1926119360, 5818978734]
 supp_id = 5818978734
+
+# ------ Limits:
+daily_views = 50
+liked_buffer = 21
+

@@ -11,4 +11,4 @@ import decor.basic as b
 from src.wait import Wait
 import decor.keyboard as k
 from db.db import BotDB
-from src.config import bot, dp, admins, db_url, db_url_local, supp_id
+from src.config import bot, dp, admins, db_url, db_url_local, supp_id, daily_views, liked_buffer

@@ -82,9 +82,17 @@ class BotDB:
         else:
             return None
 
+    def day_exists(self, id):
+        self.cursor.execute("SELECT COUNT (*) FROM forms WHERE id = %s", (id,))
+        return self.cursor.fetchall()
+
     def get_form(self, id):
         self.cursor.execute("SELECT * FROM forms WHERE id = %s", (id,))
         return self.cursor.fetchall()
+
+    def get_count(self, id):
+        self.cursor.execute("SELECT count FROM users WHERE id = %s", (id,))
+        return self.cursor.fetchone()[0]
 
     def get_user_id(self, user_id):
         self.cursor.execute("SELECT id FROM users WHERE user_id = %s", (user_id,))
@@ -152,6 +160,18 @@ class BotDB:
         self.cursor.execute("UPDATE ban SET noticed = %s WHERE id = %s", (new_noticed, id,))
         return self.conn.commit()
 
+    def update_date(self, id, daily_views):
+        self.cursor.execute("UPDATE users SET count = count+1 WHERE id = %s AND count <= %s", (id, daily_views,))
+        self.cursor.execute("UPDATE users SET count = 1 WHERE id = %s AND ((NOW() - "
+                            "(SELECT active_date FROM users WHERE id = %s) > interval '1 minute'))", (id, id,))
+        self.cursor.execute("UPDATE users SET active_date = NOW() WHERE id = %s AND ((NOW() - "
+                            "(SELECT active_date FROM users WHERE id = %s) > interval '1 minute'))", (id, id,))
+        return self.conn.commit()
+
+    def update_visible(self, id, status):
+        self.cursor.execute("UPDATE ban SET visible = %s WHERE id = %s", (status, id,))
+        return self.conn.commit()
+
     def delete_form(self, id):
         self.cursor.execute("DELETE FROM forms WHERE id = %s", (id,))
         return self.conn.commit()
@@ -168,7 +188,7 @@ class BotDB:
             gender = "девушка"
         self.cursor.execute("SELECT * FROM forms"
                             " WHERE id != %s AND gender = %s AND age BETWEEN %s AND %s AND "
-                            "id NOT IN (SELECT id FROM ban WHERE banned = True)",
+                            "id NOT IN (SELECT id FROM ban WHERE banned = True or visible = False)",
                             (id, gender, int(age) - 5, int(age) + 5))
         return self.cursor.fetchall()
 
