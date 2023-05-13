@@ -26,7 +26,9 @@ def ph(id):
     return a[4]
 
 
-def get_random_form(list_of_forms):
+def get_random_form(id):
+    a = BotDB.get_form(id)[0]
+    list_of_forms = BotDB.find_forms(id, a[7], a[3])
     a = list_of_forms[random.randint(0, len(list_of_forms) - 1)]
     return [show_form(a[2], a[3], a[5]), a[1]]
 

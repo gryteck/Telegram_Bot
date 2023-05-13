@@ -14,6 +14,12 @@ def react():
     return keyboard.add(*buttons)
 
 
+def custom(text):
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    buttons = [text]
+    return keyboard.add(*buttons)
+
+
 def key_1234():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     buttons = ["1", "2", "3", "4"]
@@ -21,19 +27,21 @@ def key_1234():
 
 
 def key_gender():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="укажите пол...")
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,
+                                         input_field_placeholder="укажи свой пол...")
     buttons = ["Парень", "Девушка"]
     return keyboard.add(*buttons)
 
 
 def key_interest():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="Кто вам интересен?")
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,
+                                         input_field_placeholder="кого ищешь...")
     buttons = ["Парни", "Девушки"]
     return keyboard.add(*buttons)
 
 
 def key_empty():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="Опишите себя")
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="опиши себя...")
     return keyboard.add("Оставить пустым")
 
 

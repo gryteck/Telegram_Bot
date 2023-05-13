@@ -144,6 +144,11 @@ class BotDB:
         self.cursor.execute("UPDATE forms SET photo = %s WHERE id = %s", (photo_id, id,))
         return self.conn.commit()
 
+    def update_form(self, id, name, gender, interest, age, ph, text):
+        self.cursor.execute("UPDATE forms SET name = %s, gender = %s, interest = %s, age = %s, photo = %s, text = %s "
+                            "WHERE id = %s", (name, gender, interest, age, ph, text, id,))
+        return self.conn.commit()
+
     def update_liked(self, id, new_liked):
         self.cursor.execute("UPDATE forms SET liked = %s WHERE id = %s", (new_liked, id,))
         return self.conn.commit()

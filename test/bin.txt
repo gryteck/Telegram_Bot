@@ -1,0 +1,10 @@
+@dp.message_handler(state=Wait.city)
+async def city(message: types.Message, state: FSMContext):
+    if len(message.text) > 30:
+        await message.answer("Слишком длинный город")
+        return
+    await state.update_data(city=message.text)
+    await message.answer(t.set_text, reply_markup=k.key_empty())
+    await Wait.text.set()
+
+    await message.photo[-1].download(destination_file=f"photos/{message.from_user.id}.jpg")
