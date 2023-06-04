@@ -28,20 +28,20 @@ def key_1234():
 
 def key_gender():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,
-                                         input_field_placeholder="укажи свой пол...")
+                                         input_field_placeholder="Укажи свой пол...")
     buttons = ["Парень", "Девушка"]
     return keyboard.add(*buttons)
 
 
 def key_interest():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,
-                                         input_field_placeholder="кого ищешь...")
+                                         input_field_placeholder="Кого ищешь...")
     buttons = ["Парни", "Девушки"]
     return keyboard.add(*buttons)
 
 
 def key_empty():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="опиши себя...")
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="Опиши себя...")
     return keyboard.add("Оставить пустым")
 
 
@@ -53,13 +53,12 @@ def key_yesno():
 
 def cont():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,
-                                         input_field_placeholder="продолжить?")
+                                         input_field_placeholder="Продолжить?")
     return keyboard.add("Продолжить")
 
 
 def back():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,
-                                         input_field_placeholder="вернуться")
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     return keyboard.add("Вернуться назад")
 
 

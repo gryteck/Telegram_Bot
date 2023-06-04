@@ -1,12 +1,13 @@
 import psycopg2
-from src.config import db_url, db_url_local
+import sys
+from src.config import db_url, db_url_local, db_url_docker, time
 
 
 class BotDB:
     def __init__(self):
         try:
-            self.conn = psycopg2.connect(db_url_local)
-        except:
+            self.conn = psycopg2.connect(db_url_docker)
+        except ConnectionError:
             print('Cant establish connection to database')
         self.cursor = self.conn.cursor()
         if not self.table_exists('users'):
@@ -26,7 +27,8 @@ class BotDB:
                     user_id SMALLSERIAL PRIMARY KEY,
                     id BIGINT NOT NULL UNIQUE,
                     join_date TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-                    active_date TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+                    active_date TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+                    count SMALLINT DEFAULT 0 NOT NULL
                     );'''
         self.cursor.execute(query)
         return self.conn.commit()
@@ -52,7 +54,8 @@ class BotDB:
                     count SMALLINT DEFAULT 0 NOT NULL,
                     claims TEXT DEFAULT 0 NOT NULL,
                     banned BOOLEAN DEFAULT false NOT NULL,
-                    noticed TEXT DEFAULT 0 NOT NULL
+                    noticed TEXT DEFAULT 0 NOT NULL,
+                    visible BOOLEAN DEFAULT true NOT NULL
                     );'''
         self.cursor.execute(query)
         return self.conn.commit()
@@ -87,12 +90,12 @@ class BotDB:
         return self.cursor.fetchall()
 
     def get_form(self, id):
-        self.cursor.execute("SELECT * FROM forms WHERE id = %s", (id,))
+        try:
+            self.cursor.execute("SELECT * FROM forms WHERE id = %s", (id,))
+        except (IndexError, psycopg2.ProgrammingError) as e:
+            print(f"Ошибка: {e}")
+            sys.exit(1)
         return self.cursor.fetchall()
-
-    def get_count(self, id):
-        self.cursor.execute("SELECT count FROM users WHERE id = %s", (id,))
-        return self.cursor.fetchone()[0]
 
     def get_user_id(self, user_id):
         self.cursor.execute("SELECT id FROM users WHERE user_id = %s", (user_id,))
@@ -120,6 +123,10 @@ class BotDB:
 
     def get_user_claims(self, id):
         self.cursor.execute("SELECT claims FROM ban WHERE id = %s", (id,))
+        return self.cursor.fetchone()[0]
+
+    def get_count(self, id):
+        self.cursor.execute("SELECT count FROM users WHERE id = %s", (id,))
         return self.cursor.fetchone()[0]
 
     def add_user(self, id):
@@ -168,10 +175,19 @@ class BotDB:
     def update_date(self, id, daily_views):
         self.cursor.execute("UPDATE users SET count = count+1 WHERE id = %s AND count <= %s", (id, daily_views,))
         self.cursor.execute("UPDATE users SET count = 1 WHERE id = %s AND ((NOW() - "
-                            "(SELECT active_date FROM users WHERE id = %s) > interval '1 minute'))", (id, id,))
+                            "(SELECT active_date FROM users WHERE id = %s) > interval %s))", (id, id, time,))
         self.cursor.execute("UPDATE users SET active_date = NOW() WHERE id = %s AND ((NOW() - "
-                            "(SELECT active_date FROM users WHERE id = %s) > interval '1 minute'))", (id, id,))
+                            "(SELECT active_date FROM users WHERE id = %s) > interval %s))", (id, id, time,))
         return self.conn.commit()
+
+    def update_date1(self, id):
+        self.cursor.execute("SELECT user_id FROM users WHERE id = %s AND ((NOW() - "
+                            "(SELECT active_date FROM users WHERE id = %s) > interval %s))", (id, id, time,))
+        if bool(len(self.cursor.fetchall())):
+            self.cursor.execute("UPDATE users SET active_date = NOW() WHERE id = %s", (id,))
+            self.conn.commit()
+            return True
+        else: return False
 
     def update_visible(self, id, status):
         self.cursor.execute("UPDATE ban SET visible = %s WHERE id = %s", (status, id,))
@@ -186,15 +202,19 @@ class BotDB:
         return self.conn.commit()
 
     def find_forms(self, id, interest, age):
-        gender: str = ""
         if interest == "парни":
             gender = "парень"
+            self.cursor.execute("SELECT * FROM forms"
+                                " WHERE id != %s AND gender = %s AND age BETWEEN %s AND %s AND "
+                                "id NOT IN (SELECT id FROM ban WHERE banned = True or visible = False)",
+                                (id, gender, int(age) - 2, int(age) + 5))
         if interest == "девушки":
             gender = "девушка"
-        self.cursor.execute("SELECT * FROM forms"
-                            " WHERE id != %s AND gender = %s AND age BETWEEN %s AND %s AND "
-                            "id NOT IN (SELECT id FROM ban WHERE banned = True or visible = False)",
-                            (id, gender, int(age) - 5, int(age) + 5))
+            self.cursor.execute("SELECT * FROM forms"
+                                " WHERE id != %s AND gender = %s AND age BETWEEN %s AND %s AND "
+                                "id NOT IN (SELECT id FROM ban WHERE banned = True or visible = False)",
+                                (id, gender, int(age) - 5, int(age) + 2))
+
         return self.cursor.fetchall()
 
     def find_banned(self):

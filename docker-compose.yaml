@@ -2,24 +2,38 @@ version: "3"
 services:
   postgres:
     image: library/postgres:13
-    container_name: postgres
+    container_name: bot_postgres
     restart: on-failure
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_PASSWORD: test
       POSTGRES_DB: postgres
     volumes:
       - db-data:/var/lib/postgresql/data
-      - ./postgres/:/docker-entrypoint-initdb.d/
+      - ./db_init/db_init.sh:/docker-entrypoint-initdb.d/db_init.sh
     ports:
       - 5432:5432
 
-  Akira:
+  redis:
+    image: redis
+    container_name: bot_redis
     restart: on-failure
-    build: ./src/
-    container_name: gateway
+    ports:
+      - 127.0.0.1:6379:6379
+    logging:
+      driver: none
+
+  gateway:
+    image: akira
+    restart: always
+    build: ./
+    container_name: Bot
     ports:
       - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+
 
 volumes:
   db-data:

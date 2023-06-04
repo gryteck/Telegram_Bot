@@ -16,16 +16,19 @@ async def my_form_answer(message: types.Message, state: FSMContext):
         await message.answer("Отправьте новое фото", reply_markup=types.ReplyKeyboardRemove())
         await Wait.change_photo.set()
     elif message.text == "4" or message.text == "Продолжить":
+        data = await state.get_data()
+        count = data["count"]
         if len(BotDB.get_user_liked(id).split()) > 1:
             await message.answer(text="сперва проверь, кому понравилась твоя анкета!", reply_markup=k.cont())
             await Wait.like_list.set()
             return
         BotDB.update_date(id, daily_views)
-        if BotDB.get_count(id) >= daily_views:
+        if count >= daily_views:
             await message.answer("На сегодня достаточно, приходи завтра")
             await message.answer(t.menu_main_text, reply_markup=k.key_123())
             return
         try:
+            await state.update_data(count=count+1)
             f = b.get_random_form(id)
         except ValueError:
             await message.answer(t.no_found)

@@ -5,7 +5,8 @@ BotDB = BotDB()
 
 @dp.message_handler(commands="try", state="*")
 async def tr(message: types.Message):
-    b.get_random_form(message.from_user.id)
+    await message.answer("Слушаю")
+    await Wait.instructions.set()
 
 
 @dp.message_handler(commands="info", state="*")
@@ -28,30 +29,13 @@ async def admin(message: types.Message):
         await Wait.menu_answer.set()
 
 
-@dp.message_handler(commands="like", state="*")
-async def like(message: types.Message, state: FSMContext):
-    id = message.from_user.id
-    while len(BotDB.get_user_liked(id).split()) != 1:
-        liked_str = str(BotDB.get_user_liked(message.from_user.id))
-        liked_id = liked_str.split()[-1]
-        if BotDB.form_exists(liked_id): break
-        BotDB.update_liked(id, b.crop_list(liked_str))
-    liked_str = str(BotDB.get_user_liked(id))
-    if len(BotDB.get_user_liked(id).split()) == 1:
-        await message.answer(t.like_list_end)
-        await bot.send_photo(photo=b.ph(id), caption=b.cap(id), chat_id=id)
+@dp.message_handler(commands="restart", state="*")
+async def restart(message: types.Message):
+    if message.from_user.id not in admins:
+        await message.answer("Данная функция вам недоступна")
         await message.answer(t.menu_main_text, reply_markup=k.key_123())
         await Wait.menu_answer.set()
-    else:
-        liked_id = liked_str.split()[-1]
-        await state.update_data(liked_id=liked_id)
-        await message.answer(t.like_list, reply_markup=k.react())
-        await bot.send_photo(photo=b.ph(liked_id), chat_id=id, caption=b.cap(liked_id))
-        await Wait.like_list.set()
-
-
-@dp.message_handler(commands="res", state="*")
-async def restart(message: types.Message):
+        return
     BotDB.drop()
     BotDB.add_ban(supp_id)
     BotDB.ban_user(supp_id)
@@ -59,20 +43,34 @@ async def restart(message: types.Message):
 
 
 @dp.message_handler(commands="start", state="*")
-async def form_start(message: types.Message):
+async def form_start(message: types.Message, state: FSMContext):
     id = message.from_user.id
     if not BotDB.user_exists(id):
         await message.answer(t.hello_text)
         BotDB.add_user(id)
-        BotDB.add_ban(id)
+        if not BotDB.ban_exists(id): BotDB.add_ban(id)
     if BotDB.form_exists(id):
         await bot.send_photo(photo=b.ph(id), chat_id=id, caption=b.cap(id))
         await message.answer(t.menu_main_text, reply_markup=k.key_123())
         await Wait.menu_answer.set()
     else:
+        await state.update_data(count=1, liked_id=id)
         await message.answer(t.set_gender, reply_markup=k.key_gender())
         await Wait.choosing_gender.set()
 
 
-if __name__ == "__main__":
-    executor.start_polling(dp, skip_updates=True)
+@dp.message_handler(commands="my_profile", state="*")
+async def form_start(message: types.Message, state: FSMContext):
+    id = message.from_user.id
+    if not BotDB.user_exists(id):
+        await message.answer(t.hello_text)
+        BotDB.add_user(id)
+        if not BotDB.ban_exists(id): BotDB.add_ban(id)
+    if BotDB.form_exists(id):
+        await bot.send_photo(photo=b.ph(id), caption=b.cap(id), chat_id=id)
+        await message.answer(t.my_form_text, reply_markup=k.key_1234())
+        await Wait.my_form_answer.set()
+    else:
+        await state.update_data(count=1, liked_id=id)
+        await message.answer(t.set_gender, reply_markup=k.key_gender())
+        await Wait.choosing_gender.set()
