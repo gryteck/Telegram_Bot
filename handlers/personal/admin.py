@@ -7,10 +7,10 @@ BotDB = BotDB()
 async def admin_menu(message: types.Message, state: FSMContext):
     id = message.from_user.id
     if message.text == "1":
-        f = b.get_random_form(BotDB.find_banned())
-        await state.update_data(banned_id=f[1])
-        await bot.send_photo(photo=b.ph(f[1]), caption=f[0], chat_id=id, reply_markup=k.ban())
-        await message.answer(BotDB.get_user_claims(f[1]).split(), reply_markup=k.match(f[1]))
+        a = await BotDB.get_random_claim()
+        await state.update_data(banned_id=a["id"])
+        await bot.send_photo(photo=b["photo"], caption=a["text"], chat_id=id, reply_markup=k.ban())
+        await message.answer(BotDB.get_user_claims(f[1]).split(), reply_markup=k.match(a["id"]))
         await Wait.admin_ban_list.set()
     elif message.text == "2":
         await message.answer("Ну вводи id, прижучим", reply_markup=types.ReplyKeyboardRemove())

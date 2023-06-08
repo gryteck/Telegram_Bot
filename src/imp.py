@@ -1,5 +1,8 @@
 import logging
 import random
+import asyncio
+import asyncpg
+import sys
 
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher import FSMContext
@@ -12,4 +15,4 @@ from decor.promo import photo_id
 import decor.kawaii as t
 import decor.basic as b
 import decor.keyboard as k
-from db.db import BotDB
+from db.schema import BotDB

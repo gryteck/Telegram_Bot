@@ -16,28 +16,28 @@ async def my_form_answer(message: types.Message, state: FSMContext):
         await message.answer("Отправьте новое фото", reply_markup=types.ReplyKeyboardRemove())
         await Wait.change_photo.set()
     elif message.text == "4" or message.text == "Продолжить":
+        f = await BotDB.get_form(id)
         data = await state.get_data()
         count = data["count"]
-        if len(BotDB.get_user_liked(id).split()) > 1:
+        if len(f["liked"].split()) > 1:
             await message.answer(text="сперва проверь, кому понравилась твоя анкета!", reply_markup=k.cont())
             await Wait.like_list.set()
             return
-        BotDB.update_date(id, daily_views)
         if count >= daily_views:
             await message.answer("На сегодня достаточно, приходи завтра")
             await message.answer(t.menu_main_text, reply_markup=k.key_123())
             return
         try:
             await state.update_data(count=count+1)
-            f = b.get_random_form(id)
+            a = await BotDB.get_random_user(id, f['age'], f['interest'])
         except ValueError:
             await message.answer(t.no_found)
-            await bot.send_photo(photo=b.ph(id), caption=b.cap(id), chat_id=id)
+            await bot.send_photo(photo=f['photo'], caption=f['text'], chat_id=id)
             await message.answer(t.my_form_text, reply_markup=k.key_1234())
             await Wait.my_form_answer.set()
             return
         await state.update_data(liked_id=f[1])
-        await bot.send_photo(photo=b.ph(f[1]), caption=f[0], chat_id=id, reply_markup=k.react())
+        await bot.send_photo(photo=a['photo'], caption=a['text'], chat_id=id, reply_markup=k.react())
         await Wait.form_reaction.set()
     else:
         await message.reply("Нет такого варианта ответа")
@@ -106,14 +106,14 @@ async def text(message: types.Message, state: FSMContext):
 @dp.message_handler(state=Wait.photo, content_types=["photo"])
 async def download_photo(message: types.Message, state: FSMContext):
     id = message.from_user.id
-    photo_id = message.photo[-1].file_id
-    await state.update_data(liked="0", username=message.from_user.username, ph=photo_id)
-    d = await state.get_data()
-    print(list(d.values()))
-    BotDB.add_form(d["username"], id, d["gender"], d["interest"], d["name"], d["age"], d["ph"], d["text"], d["liked"])
+    photo = message.photo[-1].file_id
+    await state.update_data(liked="0", username=message.from_user.username, photo=photo)
+    f = await state.get_data()
+    print(list(f.values()))
+    await BotDB.post_user(f["username"], id, f["gender"], f["interest"], f["name"], f["age"], f["photo"], f["text"])
     await message.answer(t.form)
-    await bot.send_photo(photo=b.ph(id), caption=f"#new_user {id} \n"+b.cap(id), chat_id=supp_id)
-    await bot.send_photo(photo=b.ph(id), caption=b.cap(id), chat_id=id)
+    await bot.send_photo(photo=f["photo"], caption=f"#new_user {id} \n"+f["text"], chat_id=supp_id)
+    await bot.send_photo(photo=f["photo"], caption=f["text"], chat_id=id)
     await message.answer(t.menu_main_text, reply_markup=k.key_123())
     await Wait.menu_answer.set()
 
@@ -180,46 +180,49 @@ async def upd_text(message: types.Message, state: FSMContext):
 @dp.message_handler(state=Wait.upd_photo, content_types=["photo"])
 async def upd_photo(message: types.Message, state: FSMContext):
     id = message.from_user.id
-    photo_id = message.photo[-1].file_id
-    await state.update_data(ph=photo_id)
-    d = await state.get_data()
-    print(list(d.values()))
-    BotDB.update_form(id, d["name"], d["gender"], d["interest"], d["age"], d["ph"], d["text"])
+    photo = message.photo[-1].file_id
+    await state.update_data(photo=photo)
+    f = await state.get_data()
+    print(list(f.values()))
+    await BotDB.patch_user(id, f["name"], f["gender"], f["interest"], f["age"], f["photo"], f["text"])
     await message.answer(t.form)
-    await bot.send_photo(photo=b.ph(id), caption=f"#upd_user {id} \n"+b.cap(id), chat_id=supp_id)
-    await bot.send_photo(photo=b.ph(id), caption=b.cap(id), chat_id=id)
+    await bot.send_photo(photo=f["photo"], caption=f"#upd_user {id} \n"+f["text"], chat_id=supp_id)
+    await bot.send_photo(photo=f["photo"], caption=f["text"], chat_id=id)
     await message.answer(t.menu_main_text, reply_markup=k.key_123())
     await Wait.menu_answer.set()
 
 
 @dp.message_handler(state=Wait.delete_confirm)
-async def delete_confirm(message: types.Message):
+async def delete_confirm(message: types.Message, state: FSMContext):
     if message.text not in ("Да", "Нет"):
         await message.reply("Нет такого варианта ответа")
         return
     id = message.from_user.id
     if message.text == "Да":
-        BotDB.delete_form(id)
-        BotDB.delete_user(id)
+        await BotDB.patch_visible(id, False)
         await message.answer(t.del_form, reply_markup=types.ReplyKeyboardRemove())
     elif message.text == "Нет":
-        await bot.send_photo(photo=b.ph(id), caption=b.cap(id), chat_id=id)
+        f = await BotDB.get_form(id)
+        await bot.send_photo(photo=f["photo"], caption=f["text"], chat_id=id)
         await message.answer(t.my_form_text, reply_markup=k.key_1234())
         await Wait.my_form_answer.set()
 
 
 @dp.message_handler(state=Wait.change_text)
-async def change_text(message: types.Message):
+async def change_text(message: types.Message, state: FSMContext):
     id = message.from_user.id
     if message.text == "Оставить пустым":
-        BotDB.update_text(id, '')
+        await BotDB.patch_text(id, '')
+        await state.update_data(text='')
     else:
         if len(message.text) > 400:
             await message.reply("Превышен лимит в 400 символов(")
             return
-        BotDB.update_text(id, message.text)
-    await bot.send_photo(photo=b.ph(id), caption=f"#upd {id}\n" + b.cap(id), chat_id=supp_id)
-    await bot.send_photo(photo=b.ph(id), caption=b.cap(id), chat_id=id)
+        await BotDB.patch_text(id, message.text)
+        await state.update_data(text=message.text)
+    f = await BotDB.get_form(id)
+    await bot.send_photo(photo=f["photo"], caption=f"#upd {id}\n" + f["text"], chat_id=supp_id)
+    await bot.send_photo(photo=f["photo"], caption=f["text"], chat_id=id)
     await message.answer(t.menu_main_text, reply_markup=k.key_123())
     await Wait.menu_answer.set()
 
@@ -228,9 +231,10 @@ async def change_text(message: types.Message):
 async def change_photo(message: types.Message):
     id = message.from_user.id
     photo = message.photo[-1].file_id
-    BotDB.update_photo(id, photo)
-    await bot.send_photo(photo=b.ph(id), caption=f"#upd {id}\n" + b.cap(id), chat_id=supp_id)
+    await BotDB.patch_photo(id, photo)
+    f = await BotDB.get_form(id)
+    await bot.send_photo(photo=f["photo"], caption=f"#upd {id}\n" + f["text"], chat_id=supp_id)
     await message.answer(t.form)
-    await bot.send_photo(photo=b.ph(id), caption=b.cap(id), chat_id=id)
+    await bot.send_photo(photo=f["photo"], caption=f["text"], chat_id=id)
     await message.answer(t.menu_main_text, reply_markup=k.key_123())
     await Wait.menu_answer.set()

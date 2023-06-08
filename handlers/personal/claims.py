@@ -12,26 +12,26 @@ async def claim(message: types.Message, state: FSMContext):
     id, key = message.from_user.id, message.text
     data = await state.get_data()
     banned_id = data["liked_id"]
+    b = await BotDB.get_form(banned_id)
+    f = await BotDB.get_form(id)
     if int(key) in range(1, 4):
-        if not BotDB.ban_exists(banned_id): BotDB.add_ban(banned_id)
-        if str(id) not in BotDB.get_noticed(banned_id).split():
-            BotDB.update_noticed(banned_id, BotDB.get_noticed(banned_id) + " " + str(id))
-            BotDB.update_claims(banned_id, BotDB.get_user_claims(banned_id) + " " + key)
+        if str(id) not in b["noticed"].split():
+            await BotDB.patch_claims(banned_id, b["noticed"]+f" {str(id)}", b["claims"]+f" {key}")
     if key == "3":
         await message.reply(t.claim_text, reply_markup=k.back())
         await Wait.claim_text.set()
         return
     try:
-        f = b.get_random_form(id)
+        a = await BotDB.get_random_user(id, f["age"], f["interest"])
     except ValueError:
         await message.answer(t.no_found)
-        await bot.send_photo(photo=b.ph(id), caption=b.cap(id), chat_id=id)
+        await bot.send_photo(photo=f["photo"], caption=f["text"], chat_id=id)
         await message.answer(t.my_form_text, reply_markup=k.key_1234())
         await Wait.my_form_answer.set()
         return
     await message.answer(t.ban_thq)
-    await state.update_data(liked_id=f[1])
-    await bot.send_photo(photo=b.ph(f[1]), caption=f[0], chat_id=id, reply_markup=k.react())
+    await state.update_data(liked_id=a["id"])
+    await bot.send_photo(photo=f["photo"], caption=f["text"], chat_id=id, reply_markup=k.react())
     await Wait.form_reaction.set()
 
 

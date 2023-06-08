@@ -45,32 +45,26 @@ async def restart(message: types.Message):
 @dp.message_handler(commands="start", state="*")
 async def form_start(message: types.Message, state: FSMContext):
     id = message.from_user.id
-    if not BotDB.user_exists(id):
-        await message.answer(t.hello_text)
-        BotDB.add_user(id)
-        if not BotDB.ban_exists(id): BotDB.add_ban(id)
-    if BotDB.form_exists(id):
-        await bot.send_photo(photo=b.ph(id), chat_id=id, caption=b.cap(id))
-        await message.answer(t.menu_main_text, reply_markup=k.key_123())
-        await Wait.menu_answer.set()
-    else:
+    if not await BotDB.user_exists(id):
         await state.update_data(count=1, liked_id=id)
         await message.answer(t.set_gender, reply_markup=k.key_gender())
         await Wait.choosing_gender.set()
+    else:
+        f = await BotDB.get_form(id)
+        await bot.send_photo(photo=f['photo'], chat_id=id, caption=f['text'])
+        await message.answer(t.menu_main_text, reply_markup=k.key_123())
+        await Wait.menu_answer.set()
 
 
 @dp.message_handler(commands="my_profile", state="*")
-async def form_start(message: types.Message, state: FSMContext):
+async def my_profile(message: types.Message, state: FSMContext):
     id = message.from_user.id
     if not BotDB.user_exists(id):
-        await message.answer(t.hello_text)
-        BotDB.add_user(id)
-        if not BotDB.ban_exists(id): BotDB.add_ban(id)
-    if BotDB.form_exists(id):
-        await bot.send_photo(photo=b.ph(id), caption=b.cap(id), chat_id=id)
-        await message.answer(t.my_form_text, reply_markup=k.key_1234())
-        await Wait.my_form_answer.set()
-    else:
         await state.update_data(count=1, liked_id=id)
         await message.answer(t.set_gender, reply_markup=k.key_gender())
         await Wait.choosing_gender.set()
+    else:
+        f = await BotDB.get_form(id)
+        await bot.send_photo(photo=f['photo'], chat_id=id, caption=f['text'])
+        await message.answer(t.my_form_text, reply_markup=k.key_1234())
+        await Wait.my_form_answer.set()
