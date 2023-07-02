@@ -1,8 +1,8 @@
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
 
-bot = Bot(token="5911241134:AAHuxXDW48E6rg8S5E_byTSWhIxQmMSDIk8")
-storage = RedisStorage2(host='redis', port=6379, db=1, password="",)
+bot = Bot(token="6282772673:AAEKOVAnNRO80FFezj3G82odvWT1gvDIZ3Q")
+storage = RedisStorage2(host='localhost', port=6379, db=1, password="",)
 dp = Dispatcher(bot, storage=storage)
 db_url = 'postgresql://HETdQSqYXMoTjDWbzmuxmJqlvEfKHfpO:lZETgqCIlOzwyvfPCUCgTOPiPDGsUrqw' \
          '@db.thin.dev/5759e2bc-5590-44c2-bea6-f1d3724fd8a5'
@@ -16,4 +16,4 @@ supp_id = 5818978734
 # ------ Limits:
 daily_views = 50
 liked_buffer = 21
-time = '1 day'
+time = '18 hours'

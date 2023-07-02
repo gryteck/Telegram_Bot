@@ -12,14 +12,14 @@ def crop_list(text):
     return text and ' '.join(word for word in text.split()[:-1])
 
 
-def get_random_form(id):
-    a = BotDB.get_form(id)[0]
-    list_of_forms = BotDB.find_forms(id, a[7], a[3])
-    a = list_of_forms[random.randint(0, len(list_of_forms) - 1)]
-    return [show_form(a[2], a[3], a[5]), a[1]]
+def cap(a: dict):
+    if a['text'] == '':
+        return f"{a['name']}, {a['age']}"
+    else:
+        return f"{a['name']}, {a['age']}, {a['text']}"
 
 
-def ak(text):
+def ak(text: str):
     link = "t.me/asiaparty"
     k = f"<a href=\"{link}\">{text}</a>"
     return k

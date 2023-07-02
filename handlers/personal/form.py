@@ -7,37 +7,37 @@ BotDB = BotDB()
 async def my_form_answer(message: types.Message, state: FSMContext):
     id = message.from_user.id
     if message.text == "1":
-        await message.answer("Для начала выберите свой пол", reply_markup=k.key_gender())
-        await Wait.upd_gender.set()
+        await message.answer("Для начала давай выберем пол", reply_markup=kb.key_gender())
+        await Wait.choosing_gender.set()
     elif message.text == "2":
-        await message.answer("Введите новый текст анкеты", reply_markup=k.key_empty())
+        await message.answer("Вводи новый текст анкеты", reply_markup=kb.key_empty())
         await Wait.change_text.set()
     elif message.text == "3":
-        await message.answer("Отправьте новое фото", reply_markup=types.ReplyKeyboardRemove())
-        await Wait.change_photo.set()
+        await message.answer("Отправляй фото!", reply_markup=types.ReplyKeyboardRemove())
+        await Wait.photo.set()
     elif message.text == "4" or message.text == "Продолжить":
-        f = await BotDB.get_form(id)
-        data = await state.get_data()
-        count = data["count"]
+        f = BotDB.get_form(id)
         if len(f["liked"].split()) > 1:
-            await message.answer(text="сперва проверь, кому понравилась твоя анкета!", reply_markup=k.cont())
-            await Wait.like_list.set()
-            return
-        if count >= daily_views:
-            await message.answer("На сегодня достаточно, приходи завтра")
-            await message.answer(t.menu_main_text, reply_markup=k.key_123())
-            return
+            while not BotDB.user_exists(f["liked"].split()[-1]) and len(f["liked"].split()) != 1:
+                f["liked"] = b.crop_list(f["liked"])
+            BotDB.patch_liked(id, f["liked"])
+            if len(f["liked"].split()) != 1:
+                l = BotDB.get_form(f["liked"].split()[-1])
+                await state.update_data(liked_id=l["id"])
+                await bot.send_photo(photo=l["photo"], chat_id=id, caption=t.like_list + b.cap(l),
+                                     reply_markup=kb.react())
+                await Wait.form_reaction.set()
+                return
         try:
-            await state.update_data(count=count+1)
-            a = await BotDB.get_random_user(id, f['age'], f['interest'])
+            r = BotDB.get_random_user(id, f["age"], f["interest"])
         except ValueError:
             await message.answer(t.no_found)
-            await bot.send_photo(photo=f['photo'], caption=f['text'], chat_id=id)
-            await message.answer(t.my_form_text, reply_markup=k.key_1234())
+            await bot.send_photo(photo=f["photo"], caption=b.cap(f), chat_id=id)
+            await message.answer(t.my_form_text, reply_markup=kb.key_1234())
             await Wait.my_form_answer.set()
             return
-        await state.update_data(liked_id=f[1])
-        await bot.send_photo(photo=a['photo'], caption=a['text'], chat_id=id, reply_markup=k.react())
+        await state.update_data(liked_id=r["id"])
+        await bot.send_photo(photo=r["photo"], caption=b.cap(r), chat_id=id, reply_markup=kb.react())
         await Wait.form_reaction.set()
     else:
         await message.reply("Нет такого варианта ответа")
@@ -50,7 +50,7 @@ async def choose_gender(message: types.Message, state: FSMContext):
         await message.answer("Нет такого варианта ответа")
         return
     await state.update_data(gender=message.text.lower())
-    await message.answer(t.set_interest, reply_markup=k.key_interest())
+    await message.answer(t.set_interest, reply_markup=kb.key_interest())
     await Wait.choosing_interest.set()
 
 
@@ -58,7 +58,11 @@ async def choose_gender(message: types.Message, state: FSMContext):
 async def choose_interest(message: types.Message, state: FSMContext):
     if message.text == "Парни" or message.text == "Девушки":
         await state.update_data(interest=message.text.lower())
-        await message.answer(t.set_name, reply_markup=types.ReplyKeyboardRemove())
+        try:
+            data = await state.get_data()
+            await message.answer(t.set_name, reply_markup=kb.custom(data['name']))
+        except KeyError:
+            await message.answer(t.set_name, reply_markup=types.ReplyKeyboardRemove())
         await Wait.name.set()
     else:
         await message.reply("Нет такого варианта ответа")
@@ -72,7 +76,11 @@ async def name(message: types.Message, state: FSMContext):
         return
     await state.update_data(name=message.text)
     await message.reply(t.set_age+f"{message.text}!")
-    await message.answer('Сколько тебе лет?')
+    try:
+        data = await state.get_data()
+        await message.answer('Сколько тебе лет?', reply_markup=kb.custom(data['age']))
+    except KeyError:
+        await message.answer('Сколько тебе лет?', reply_markup=types.ReplyKeyboardRemove())
     await Wait.age.set()
 
 
@@ -86,7 +94,7 @@ async def age(message: types.Message, state: FSMContext):
         await message.reply("Некорректный возраст")
         return
     await state.update_data(age=message.text)
-    await message.answer(t.set_text, reply_markup=k.key_empty())
+    await message.answer(t.set_text, reply_markup=kb.custom("Оставить пустым"))
     await Wait.text.set()
 
 
@@ -104,91 +112,20 @@ async def text(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(state=Wait.photo, content_types=["photo"])
-async def download_photo(message: types.Message, state: FSMContext):
+async def set_photo(message: types.Message, state: FSMContext):
     id = message.from_user.id
     photo = message.photo[-1].file_id
     await state.update_data(liked="0", username=message.from_user.username, photo=photo)
     f = await state.get_data()
-    print(list(f.values()))
-    await BotDB.post_user(f["username"], id, f["gender"], f["interest"], f["name"], f["age"], f["photo"], f["text"])
     await message.answer(t.form)
-    await bot.send_photo(photo=f["photo"], caption=f"#new_user {id} \n"+f["text"], chat_id=supp_id)
-    await bot.send_photo(photo=f["photo"], caption=f["text"], chat_id=id)
-    await message.answer(t.menu_main_text, reply_markup=k.key_123())
-    await Wait.menu_answer.set()
-
-
-@dp.message_handler(state=Wait.upd_gender)
-async def upd_gender(message: types.Message, state: FSMContext):
-    if message.text not in ["Парень", "Девушка"]:
-        await message.answer("Нет такого варианта ответа")
-        return
-    await state.update_data(gender=message.text.lower())
-    await message.answer(t.set_interest, reply_markup=k.key_interest())
-    await Wait.upd_interest.set()
-
-
-@dp.message_handler(state=Wait.upd_interest)
-async def upd_interest(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    if message.text == "Парни" or message.text == "Девушки":
-        await state.update_data(interest=message.text.lower())
-        await message.answer(t.set_name, reply_markup=k.custom(data["name"]))
-        await Wait.upd_name.set()
+    if BotDB.user_exists(id):
+        await bot.send_photo(photo=f["photo"], caption=f"#upd_user {id} \n"+b.cap(f), chat_id=supp_id)
+        BotDB.patch_user(id, f['gender'], f['interest'], f['name'], f['age'], f['photo'], f['text'])
     else:
-        await message.reply("Нет такого варианта ответа")
-        return
-
-
-@dp.message_handler(state=Wait.upd_name)
-async def upd_name(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    if len(message.text) > 20:
-        await message.answer("Недопустимая длина имени")
-        return
-    await state.update_data(name=message.text)
-    await message.reply(t.set_age+f"{message.text}!")
-    await message.answer('Сколько тебе лет?', reply_markup=k.custom(data["age"]))
-    await Wait.upd_age.set()
-
-
-@dp.message_handler(state=Wait.upd_age)
-async def upd_age(message: types.Message, state: FSMContext):
-    try:
-        if int(message.text) < 18 or int(message.text) > 30:
-            await message.reply("Бот предназначен для пользователей от 18 до 30 лет")
-            return
-    except(TypeError, ValueError):
-        await message.reply("Некорректный возраст")
-        return
-    await state.update_data(age=message.text)
-    await message.answer(t.set_text, reply_markup=k.custom("Оставить текущее"))
-    await Wait.upd_text.set()
-
-
-@dp.message_handler(state=Wait.upd_text)
-async def upd_text(message: types.Message, state: FSMContext):
-    if message.text != "Оставить текущее":
-        if len(message.text) > 400:
-            await message.reply("Превышен лимит в 400 символов")
-            return
-        await state.update_data(text=message.text)
-    await message.answer("Загрузите своё фото", reply_markup=types.ReplyKeyboardRemove())
-    await Wait.upd_photo.set()
-
-
-@dp.message_handler(state=Wait.upd_photo, content_types=["photo"])
-async def upd_photo(message: types.Message, state: FSMContext):
-    id = message.from_user.id
-    photo = message.photo[-1].file_id
-    await state.update_data(photo=photo)
-    f = await state.get_data()
-    print(list(f.values()))
-    await BotDB.patch_user(id, f["name"], f["gender"], f["interest"], f["age"], f["photo"], f["text"])
-    await message.answer(t.form)
-    await bot.send_photo(photo=f["photo"], caption=f"#upd_user {id} \n"+f["text"], chat_id=supp_id)
-    await bot.send_photo(photo=f["photo"], caption=f["text"], chat_id=id)
-    await message.answer(t.menu_main_text, reply_markup=k.key_123())
+        await bot.send_photo(photo=f["photo"], caption=f"#new_user {id} \n" + b.cap(f), chat_id=supp_id)
+        BotDB.post_user(f["username"], id, f["gender"], f["interest"], f["name"], f["age"], f["photo"], f["text"])
+    await bot.send_photo(photo=f["photo"], caption=b.cap(f), chat_id=id)
+    await message.answer(t.menu_main_text, reply_markup=kb.key_123())
     await Wait.menu_answer.set()
 
 
@@ -199,12 +136,12 @@ async def delete_confirm(message: types.Message, state: FSMContext):
         return
     id = message.from_user.id
     if message.text == "Да":
-        await BotDB.patch_visible(id, False)
+        BotDB.patch_visible(id, False)
         await message.answer(t.del_form, reply_markup=types.ReplyKeyboardRemove())
     elif message.text == "Нет":
-        f = await BotDB.get_form(id)
-        await bot.send_photo(photo=f["photo"], caption=f["text"], chat_id=id)
-        await message.answer(t.my_form_text, reply_markup=k.key_1234())
+        f = BotDB.get_form(id)
+        await bot.send_photo(photo=f["photo"], caption=b.cap(f), chat_id=id)
+        await message.answer(t.my_form_text, reply_markup=kb.key_1234())
         await Wait.my_form_answer.set()
 
 
@@ -212,29 +149,16 @@ async def delete_confirm(message: types.Message, state: FSMContext):
 async def change_text(message: types.Message, state: FSMContext):
     id = message.from_user.id
     if message.text == "Оставить пустым":
-        await BotDB.patch_text(id, '')
+        BotDB.patch_text(id, '')
         await state.update_data(text='')
     else:
         if len(message.text) > 400:
             await message.reply("Превышен лимит в 400 символов(")
             return
-        await BotDB.patch_text(id, message.text)
+        BotDB.patch_text(id, message.text)
         await state.update_data(text=message.text)
-    f = await BotDB.get_form(id)
-    await bot.send_photo(photo=f["photo"], caption=f"#upd {id}\n" + f["text"], chat_id=supp_id)
-    await bot.send_photo(photo=f["photo"], caption=f["text"], chat_id=id)
-    await message.answer(t.menu_main_text, reply_markup=k.key_123())
-    await Wait.menu_answer.set()
-
-
-@dp.message_handler(state=Wait.change_photo, content_types=["photo"])
-async def change_photo(message: types.Message):
-    id = message.from_user.id
-    photo = message.photo[-1].file_id
-    await BotDB.patch_photo(id, photo)
-    f = await BotDB.get_form(id)
-    await bot.send_photo(photo=f["photo"], caption=f"#upd {id}\n" + f["text"], chat_id=supp_id)
-    await message.answer(t.form)
-    await bot.send_photo(photo=f["photo"], caption=f["text"], chat_id=id)
-    await message.answer(t.menu_main_text, reply_markup=k.key_123())
+    f = BotDB.get_form(id)
+    await bot.send_photo(photo=f["photo"], caption=f"#upd {id}\n"+b.cap(f), chat_id=supp_id)
+    await bot.send_photo(photo=f["photo"], caption=b.cap(f), chat_id=id)
+    await message.answer(t.menu_main_text, reply_markup=kb.key_123())
     await Wait.menu_answer.set()
