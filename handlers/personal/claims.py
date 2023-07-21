@@ -1,6 +1,15 @@
-from src.imp import *
+from aiogram import types
+from aiogram.dispatcher import FSMContext
 
-BotDB = BotDB()
+from src.config import dp, bot, supp_id
+from src.wait import Wait
+
+import decor.text as t
+import decor.keyboard as kb
+
+from handlers.personal.reactions import random_form
+
+from db.schema import db
 
 
 @dp.message_handler(state=Wait.claim)
@@ -11,40 +20,19 @@ async def claim(message: types.Message, state: FSMContext):
         return
     id, key = message.from_user.id, message.text
     data = await state.get_data()
-    liked_id = data["liked_id"]
-    l = BotDB.get_form(liked_id)
-    f = BotDB.get_form(id)
-    if int(key) in range(1, 4):
-        if str(id) not in l["noticed"].split():
-            BotDB.patch_claims(liked_id, l["noticed"]+f" {str(id)}", l["claims"]+f" {key}")
-    if key == "3":
-        await message.reply(t.claim_text, reply_markup=kb.back())
+    f = db.get_form(id)
+    liked_id = data['liked_id']
+    l = db.get_form(liked_id)
+    if message.text in ["1", "2"]:
+        if str(id) not in l['noticed']: db.patch_claims(liked_id, l['noticed']+[id], l['claims']+[message.text])
+        if liked_id in f['liked']: f['liked'] = db.patch_liked(id, f['liked'][:-1])
+        await message.answer(t.ban_thq)
+    if message.text == "3":
+        await message.answer(t.claim_text, reply_markup=kb.back())
         await Wait.claim_text.set()
         return
     # вывод анкеты
-    if len(f["liked"].split()) > 1:
-        while not BotDB.user_exists(f["liked"].split()[-1]) and len(f["liked"].split()) != 1:
-            f["liked"] = b.crop_list(f["liked"])
-        if key != "4": f["liked"] = b.crop_list(f["liked"])
-        BotDB.patch_liked(id, f["liked"])
-        if len(f["liked"].split()) != 1:
-            l = BotDB.get_form(f["liked"].split()[-1])
-            await state.update_data(liked_id=l["id"])
-            await bot.send_photo(photo=l["photo"], chat_id=id, caption=t.like_list+l["text"], reply_markup=kb.react())
-            await Wait.like_list.set()
-            return
-    try:
-        r = BotDB.get_random_user(id, f["age"], f["interest"])
-    except ValueError:
-        await message.answer(t.no_found)
-        await bot.send_photo(photo=f["photo"], caption=f["text"], chat_id=id)
-        await message.answer(t.my_form_text, reply_markup=kb.key_1234())
-        await Wait.my_form_answer.set()
-        return
-    await message.answer(t.ban_thq)
-    await state.update_data(liked_id=r["id"])
-    await bot.send_photo(photo=r["photo"], caption=r["text"], chat_id=id, reply_markup=kb.react())
-    await Wait.form_reaction.set()
+    await random_form(message, state, id, f)
 
 
 @dp.message_handler(state=Wait.claim_text)
@@ -55,31 +43,12 @@ async def claim_text(message: types.Message, state: FSMContext):
         await Wait.claim.set()
         return
     data = await state.get_data()
-    liked_id = data["liked_id"]
-    l = BotDB.get_form(liked_id)
-    f = BotDB.get_form(id)
+    liked_id = data['liked_id']
+    l = db.get_form(liked_id)
+    f = db.get_form(id)
+    if id not in l['noticed']: db.patch_claims(liked_id, l['noticed']+[id], l['claims']+["3"])
     await bot.send_photo(photo=l['photo'], chat_id=supp_id,
-                         caption="#claim "+str(liked_id)+"\n"+b.cap(l)+f"\n\nFrom {id}:\n"+message.text)
+                         caption=f"#claim {liked_id}\n{t.cap(l)}\n\nFrom {id}:\n{message.text}")
     await message.answer(t.ban_thq)
     # вывод анкеты
-    if len(f["liked"].split()) > 1:
-        while not BotDB.user_exists(f["liked"].split()[-1]) and len(f["liked"].split()) != 1:
-            f["liked"] = b.crop_list(f["liked"])
-        BotDB.patch_liked(id, b.crop_list(f["liked"]))
-        if len(f["liked"].split()) != 1:
-            l = BotDB.get_form(f["liked"].split()[-1])
-            await state.update_data(liked_id=l["id"])
-            await bot.send_photo(photo=l["photo"], chat_id=id, caption=t.like_list + l["text"], reply_markup=kb.react())
-            await Wait.like_list.set()
-            return
-    try:
-        r = BotDB.get_random_user(id, f["age"], f["interest"])
-    except ValueError:
-        await message.answer(t.no_found)
-        await bot.send_photo(photo=f['photo'], caption=b.cap(id), chat_id=id)
-        await message.answer(t.my_form_text, reply_markup=kb.key_1234())
-        await Wait.my_form_answer.set()
-        return
-    await state.update_data(liked_id=f[1])
-    await bot.send_photo(photo=r['photo'], caption=b.cap(r), chat_id=id, reply_markup=kb.react())
-    await Wait.form_reaction.set()
+    await random_form(message, state, id, f)

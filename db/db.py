@@ -249,3 +249,6 @@ class BotDB:
 
     def close(self):
         self.conn.close()
+
+
+db = BotDB()

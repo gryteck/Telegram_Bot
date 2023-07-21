@@ -2,13 +2,12 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 
 class Wait(StatesGroup):
-    choosing_gender = State()
-    choosing_interest = State()
-    name = State()
-    age = State()
-    city = State()
-    text = State()
-    photo = State()
+    set_gender = State()
+    set_interest = State()
+    set_name = State()
+    set_age = State()
+    set_text = State()
+    set_photo = State()
 
     menu_answer = State()
     instructions = State()
@@ -28,3 +27,5 @@ class Wait(StatesGroup):
     get_form_by_id = State()
     get_ban_list = State()
     get_form_by_username = State()
+
+    get_photo = State()

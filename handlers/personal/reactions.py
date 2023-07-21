@@ -1,77 +1,87 @@
-from src.imp import *
+import logging
+from asyncio import sleep
+from aiogram import types
+from aiogram.dispatcher import FSMContext
 
-BotDB = BotDB()
+from random import choice
+
+from src.config import dp, bot, daily_views, liked_buffer, promo
+from src.wait import Wait
+
+import decor.text as t
+import decor.keyboard as kb
+
+from db.schema import db
 
 
 @dp.message_handler(state=Wait.form_reaction)
 async def form_reaction(message: types.Message, state: FSMContext):
     id = message.from_user.id
     if message.text not in ("Продолжить", "Вернуться назад", "❤️", "👎", "🚫"):
-        await message.reply("Нет такого варианта ответа")
-        return
+        return await message.reply(t.invalid_answer)
     if message.text == "Вернуться назад":
         await message.answer(t.menu_main_text, reply_markup=kb.key_123())
-        await Wait.menu_answer.set()
-        return
+        return await Wait.menu_answer.set()
     elif message.text == "🚫":
         await message.answer(t.ban, reply_markup=kb.key_1234())
-        await Wait.claim.set()
-        return
-    f = BotDB.get_form(id)
-    if f['view_count'] >= daily_views:
-        await message.answer("На сегодня достаточно, приходи завтра")
-        await message.answer(t.menu_main_text, reply_markup=kb.key_123())
-        await Wait.menu_answer.set()
-        return
+        return await Wait.claim.set()
+    f = db.get_form(id)
     data = await state.get_data()
-    liked_id = data["liked_id"]
-    l = BotDB.get_form(liked_id)
-    # реклама и прочее
-    if f["view_count"] % 30 == 0 and message.text != "❤️":
-        await message.answer(text=t.notice, reply_markup=kb.cont())
-        await Wait.form_reaction.set()
-        return
-    elif f["view_count"] % 10 == 0 and message.text != "❤️":
-        await bot.send_photo(photo=photo_id[random.randint(0, len(photo_id) - 1)], chat_id=id,
-                             caption=t.ad[random.randint(0, len(t.ad) - 1)], parse_mode="HTML",
-                             reply_markup=kb.cont())
-        await Wait.form_reaction.set()
-        return
+    try: liked_id = data["liked_id"]
+    except KeyError: return await random_form(message, state, id, f)
+    l = db.get_form(liked_id)
     # обработка реакции
-    if message.text == ("❤️" or "👎") and l['id'] in f['liked'].split():
-        f['liked'] = BotDB.patch_liked(id, b.crop_list(f["liked"]))
-        if not f["visible"] and len(f["liked"].split()) < liked_buffer: BotDB.patch_visible(id, True)
+    if f['liked'] and liked_id == f['liked'][-1] and message.text in ("❤️", "👎"):
+        f['liked'] = db.patch_liked(id, f['liked'][:-1:])
         if message.text == "❤️":
-            await bot.send_message(text=t.like_match, chat_id=liked_id, reply_markup=kb.cont())
-            await bot.send_photo(photo=f["photo"], chat_id=liked_id, caption=f["text"], reply_markup=kb.match(id))
-            await bot.send_message(text=t.like_match, chat_id=id, reply_markup=kb.match(liked_id))
-    elif message.text == "❤️" and l["visible"] and not f["banned"]:
-        if len(l["liked"].split()) >= liked_buffer: BotDB.patch_visible(liked_id, False)
-        if str(id) not in l["liked"].split():
-            await bot.send_message(text=t.liked, chat_id=liked_id)
-            await BotDB.patch_liked(liked_id, l["liked"]+f" {str(id)}")
+            await bot.send_message(text=t.like_match(), chat_id=liked_id, reply_markup=kb.cont())
+            await bot.send_photo(photo=f['photo'], chat_id=liked_id, caption=t.cap(f), reply_markup=kb.match(id))
+            await bot.send_message(text=t.like_match(), chat_id=id, reply_markup=kb.match(liked_id))
+    elif message.text == "❤️" and l['visible'] and not f['banned']:
+        if len(l['liked']) >= liked_buffer: db.patch_visible(liked_id, False)
+        if id not in l['liked']:
+            l['liked'].append(id)
+            if len(l['liked']) in [1, 5, 10, 15]: await bot.send_message(text=t.liked(l), chat_id=liked_id,
+                                                                         reply_markup=kb.cont())
+            db.patch_liked(liked_id, l['liked'])
     # вывод рандомной анкеты
     await random_form(message, state, id, f)
 
 async def random_form(message: types.Message, state: FSMContext, id: int, f: dict):
-    if len(f["liked"].split()) > 1:
-        while not BotDB.user_exists(f["liked"].split()[-1]) and len(f["liked"].split()) != 1:
-            f["liked"] = b.crop_list(f["liked"])
-        BotDB.patch_liked(id, f["liked"])
-        if len(f["liked"].split()) != 1:
-            l = BotDB.get_form(f["liked"].split()[-1])
-            await state.update_data(liked_id=l["id"])
-            await bot.send_photo(photo=l["photo"], chat_id=id, caption=t.like_list+b.cap(l), reply_markup=kb.react())
-            await Wait.form_reaction.set()
-            return
-    try:
-        r = BotDB.get_random_user(id, f["age"], f["interest"])
+    if f['view_count'] >= daily_views:
+        await message.answer(t.enough()+"\n\n"+t.menu_main_text, reply_markup=kb.key_123())
+        return await Wait.menu_answer.set()
+    if f['view_count'] % 3 == 0: return await random_message(message, state, id, f)
+    if not f['visible'] and len(f['liked']) < liked_buffer: db.patch_visible(id, True)
+    if f['liked']:
+        while f['liked'] and not db.user_exists(f['liked'][-1]): f['liked'].pop()
+        db.patch_liked(id, f['liked'])
+        if f['liked']:
+            l = db.get_form(f['liked'][-1])
+            await state.update_data(liked_id=l['id'])
+            await bot.send_photo(photo=l['photo'], chat_id=id, caption=t.like_list(f)+t.cap(l), reply_markup=kb.react())
+            return await Wait.form_reaction.set()
+    try: r = db.get_random_user(id, f['age'], f['interest'])
     except ValueError:
         await message.answer(t.no_found)
-        await bot.send_photo(photo=f["photo"], caption=b.cap(f), chat_id=id)
+        await bot.send_photo(photo=f['photo'], caption=t.cap(f), chat_id=id)
         await message.answer(t.my_form_text, reply_markup=kb.key_1234())
-        await Wait.my_form_answer.set()
-        return
-    await state.update_data(liked_id=r["id"])
-    await bot.send_photo(photo=r["photo"], caption=b.cap(r), chat_id=id, reply_markup=kb.react())
+        return await Wait.my_form_answer.set()
+    await state.update_data(liked_id=r['id'])
+    await bot.send_photo(photo=r['photo'], caption=t.cap(r), chat_id=id, reply_markup=kb.react())
+    db.patch_count(id)
     await Wait.form_reaction.set()
+
+async def random_message(message: types.Message, state: FSMContext, id: int, f: dict):
+    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
+    await sleep(1)
+    if f['view_count'] % 120 == 0:
+        await message.answer(t.day_fact(), reply_markup=kb.cont())
+        await Wait.form_reaction.set()
+    elif f['view_count'] % 90 == 0:
+        await message.answer(t.notice, reply_markup=kb.cont())
+        await Wait.form_reaction.set()
+    elif f['view_count'] % 30 == 0:
+        await bot.send_photo(photo=choice(promo), caption=t.ad(), chat_id=id, reply_markup=kb.cont(), parse_mode="HTML")
+        await Wait.form_reaction.set()
+    return db.patch_count(id)

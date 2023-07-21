@@ -1,5 +1,5 @@
 import psycopg2
-from src.config import db_url, db_url_local, db_url_docker, time, daily_views
+from src.config import db_url, db_url_local, db_url_docker, daily_views
 from db.schema import BotDB
 
 
@@ -16,14 +16,14 @@ class BotDBTables(BotDB):
                     text TEXT,
                     gender TEXT NOT NULL,
                     interest TEXT NOT NULL,
-                    liked TEXT NOT NULL,
+                    liked BIGINT ARRAY NOT NULL,
                     join_date TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
                     active_date TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
                     view_count SMALLINT DEFAULT 0 NOT NULL,
                     claims_count SMALLINT DEFAULT 0 NOT NULL,
-                    claims TEXT DEFAULT 0 NOT NULL,
+                    claims TEXT ARRAY NOT NULL,
                     banned BOOLEAN DEFAULT false NOT NULL,
-                    noticed_users TEXT DEFAULT 0 NOT NULL,
+                    noticed INT ARRAY NOT NULL,
                     visible BOOLEAN DEFAULT true NOT NULL
                     );
                     CREATE INDEX user_id_idx ON users (id);"""
@@ -40,3 +40,7 @@ class BotDBTables(BotDB):
                 """
         self.cursor.execute(query)
         return self.cursor.fetchone()[0]
+
+    def drop_table_users(self):
+        self.cursor.execute("DROP TABLE users")
+        return self.conn.commit()

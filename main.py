@@ -1,46 +1,32 @@
-from src.imp import *
-import psycopg2
+import logging
+import asyncio
+
 from handlers import dp
+from handlers.personal.activity import check_inactive
+from db.schema import db
+
 # logging.basicConfig(level=logging.INFO, filename='src/main.log', \
 # filemode='w', format='%(asctime)s, %(levelname)s, %(message)s, %(name)s')
-logging.basicConfig(level=logging.INFO)
-
-BotDB = BotDB()
-
-async def main():
-    try:
-        # Connect to the database
-        BotDB.connect()
-        if not BotDBTables().table_users_exists():
-            BotDB.create_table_users()
-        # Start the bot
-        await dp.start_polling()
-        # Disconnect from the database
-        BotDB.close()
-    except Exception as e:
-        print(f"Error: {str(e)}")
+logging.basicConfig(level=logging.DEBUG)
 
 
 async def on_startup(dp):
     # Creates database connection pool
-    BotDB.connect()
+    pass
 
 
 async def on_shutdown(dp):
     # Closes database pool
-    BotDB.close()
-
+    db.close()
 
 if __name__ == "__main__":
     from aiogram import executor
+
+    loop = asyncio.get_event_loop()
+    loop.create_task(check_inactive())
 
     executor.start_polling(
         dp,
         on_startup=on_startup,
         on_shutdown=on_shutdown,
     )
-
-
-
-
-
