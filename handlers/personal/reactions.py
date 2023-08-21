@@ -18,7 +18,8 @@ async def form_reaction(message: types.Message, state: FSMContext):
     id = message.from_user.id
     if message.text not in ("Продолжить", "Вернуться назад", "❤️", "👎", "🚫", "Сделано!"):
         return await message.reply(t.invalid_answer)
-    if message.text == "Вернуться назад":
+    if message.text in ("Вернуться назад", "💤"):
+        await message.answer("Подождем, пока кто-то увидит твою анкету")
         await message.answer(t.menu_main_text, reply_markup=kb.key_123())
         return await Wait.menu_answer.set()
     elif message.text == "🚫":

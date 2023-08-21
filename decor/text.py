@@ -2,7 +2,7 @@ import random
 from src.config import promo_link
 
 menu_main_text = '1. Погнали знакомиться o(>ω<)o \n' \
-                 '2. Изменить анкету (* ^ ω ^) \n' \
+                 '2. Моя анкета (* ^ ω ^) \n' \
                  '3. Больше никого не ищу ＼(º □ º l|l)/'
 
 my_form_text = '1. Переписать всё с нуля (・人・)\n' \
