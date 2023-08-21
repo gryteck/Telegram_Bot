@@ -26,7 +26,7 @@ class BotDB:
         pass
 
     def close(self):
-        logging.warning("Connection closed")
+        logging.warning("Connection is closed")
         self.conn.close()
 
     @db_exception
@@ -89,28 +89,28 @@ class BotDB:
         return result[0]
 
     @db_exception
-    def post_user(self, username: str, id: int, gender: str, interest: str, name: str, age: int, photo: str, text: str):
+    def post_user(self, username: str, id: int, gender: str, interest: str, name: str, age: int, photo: str, text: str) -> None:
         self.cursor.execute("INSERT INTO users (username, id, name, age, photo, text, gender, interest, liked, "
                             "claims, noticed) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                             (username, id, name, age, photo, text, gender, interest, [], [], []))
         return self.conn.commit()
 
     @db_exception
-    def patch_user(self, id: int, gender: str, interest: str, name: str, age: int, photo: str, text: str) -> None:
-        self.cursor.execute("UPDATE users SET name = %s, gender = %s, interest = %s, age = %s, photo = %s, text = %s"
-                            " WHERE id = %s", (name, gender, interest, age, photo, text, id,))
+    def patch_user(self, username: str, id: int, gender: str, interest: str, name: str, age: int, photo: str, text: str) -> None:
+        self.cursor.execute("UPDATE users SET username = %s, name = %s, gender = %s, interest = %s, age = %s, photo = %s, text = %s"
+                            " WHERE id = %s", (username, name, gender, interest, age, photo, text, id,))
         return self.conn.commit()
 
     @db_exception
     def patch_visible(self, id: int, visible: bool) -> None:
-
         self.cursor.execute("UPDATE users SET visible = %s WHERE id = %s", (visible, id,))
         return self.conn.commit()
 
     @db_exception
-    def patch_text(self, id: int, text: str) -> None:
+    def patch_text(self, id: int, text: str) -> str:
         self.cursor.execute("UPDATE users SET text = %s WHERE id = %s", (text, id,))
-        return self.conn.commit()
+        self.conn.commit()
+        return text
 
     @db_exception
     def patch_liked(self, id: int, liked: list) -> list:
@@ -135,14 +135,12 @@ class BotDB:
 
     @db_exception
     def patch_count(self, id) -> None:
-        self.cursor.execute("UPDATE users SET view_count = view_count+1 WHERE id = %s", (id,))
-        self.cursor.execute("UPDATE users SET view_count = 1 WHERE id = %s AND ((NOW() - "
-                            "(SELECT active_date FROM users WHERE id = %s) > interval %s))",
-                            (id, id, last_active_time,))
-        self.cursor.execute("UPDATE users SET active_date = NOW() WHERE id = %s AND ((NOW() - "
-                            "(SELECT active_date FROM users WHERE id = %s) > interval %s))",
-                            (id, id, last_active_time,))
-        return self.conn.commit()
+        self.cursor.execute("UPDATE users SET view_count = view_count + 1 WHERE id = %s", (id,))
+        self.cursor.execute("UPDATE users SET view_count = 1, active_date = NOW() WHERE id = %s AND ((NOW() - "
+                            "(SELECT active_date FROM users WHERE id = %s) > interval %s))", (id, id, last_active_time,))
+        self.conn.commit()
+        self.cursor.execute("SELECT view_count FROM users WHERE id = %s", (id,))
+        return self.cursor.fetchone()[0]
 
     @db_exception
     def patch_inactive_users(self) -> list:

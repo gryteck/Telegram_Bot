@@ -71,11 +71,11 @@ async def my_profile(message: types.Message, state: FSMContext):
         await Wait.set_gender.set()
     else:
         f = db.get_form(id)
-        await bot.send_photo(photo=f['photo'], chat_id=id, caption=f['text'])
+        await bot.send_photo(photo=f['photo'], chat_id=id, caption=t.cap(f))
         await message.answer(t.my_form_text, reply_markup=kb.key_1234())
         await Wait.my_form_answer.set()
 
-@dp.message_handler(commands="pfvvfhoto", state="*")
-async def get_photo(message: types.Message, state: FSMContext):
+@dp.message_handler(commands="photo", state="*")
+async def get_photo(message: types.Message):
     await message.answer("Кидай фото")
     await Wait.get_photo.set()

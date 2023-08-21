@@ -14,10 +14,9 @@ from db.schema import db
 
 @dp.message_handler(state=Wait.claim)
 async def claim(message: types.Message, state: FSMContext):
-    if message.text not in ("1", "2", "3", "4"):
+    if message.text not in ("1", "2", "3", "4", "Продолжить"):
         await message.reply("Нет такого варианта ответа")
-        await Wait.claim.set()
-        return
+        return await Wait.claim.set()
     id, key = message.from_user.id, message.text
     data = await state.get_data()
     f = db.get_form(id)
@@ -27,6 +26,8 @@ async def claim(message: types.Message, state: FSMContext):
         if str(id) not in l['noticed']: db.patch_claims(liked_id, l['noticed']+[id], l['claims']+[message.text])
         if liked_id in f['liked']: f['liked'] = db.patch_liked(id, f['liked'][:-1])
         await message.answer(t.ban_thq)
+    elif message.text == "Продолжить":
+        return await random_form(message, state, id, f)
     if message.text == "3":
         await message.answer(t.claim_text, reply_markup=kb.back())
         await Wait.claim_text.set()
@@ -40,8 +41,8 @@ async def claim_text(message: types.Message, state: FSMContext):
     id = message.from_user.id
     if message.text == "Вернуться назад":
         await message.answer(t.ban, reply_markup=kb.key_1234())
-        await Wait.claim.set()
-        return
+        return await Wait.claim.set()
+    elif message.text == "Продолжить": return await random_form(message, state, id, db.get_form(id))
     data = await state.get_data()
     liked_id = data['liked_id']
     l = db.get_form(liked_id)

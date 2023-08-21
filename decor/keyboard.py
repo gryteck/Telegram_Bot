@@ -63,12 +63,13 @@ def back():
 
 
 def ban():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="id...")
     buttons = ["✅", "❌", "⁉️", "↩️"]
     return keyboard.row(*buttons)
 
 
 def match(id):
-    button_url = f'tg://user?id={id}'
+    if type(id) == int: button_url = f'tg://user?id={id}'
+    else: button_url = f't.me/{id}'
     markup = types.InlineKeyboardMarkup()
     return markup.add(types.InlineKeyboardButton(text="Написать человечку", url=button_url))

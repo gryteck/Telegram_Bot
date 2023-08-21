@@ -5,11 +5,6 @@ from handlers import dp
 from handlers.personal.activity import check_inactive
 from db.schema import db
 
-# logging.basicConfig(level=logging.INFO, filename='src/main.log', \
-# filemode='w', format='%(asctime)s, %(levelname)s, %(message)s, %(name)s')
-logging.basicConfig(level=logging.DEBUG)
-
-
 async def on_startup(dp):
     # Creates database connection pool
     pass
@@ -20,6 +15,10 @@ async def on_shutdown(dp):
     db.close()
 
 if __name__ == "__main__":
+
+    logging.basicConfig(level=logging.WARNING,
+                        # filename='main.log', filemode='w',
+                        format='%(asctime)s, %(levelname)s, %(message)s, %(name)s', force=True)
     from aiogram import executor
 
     loop = asyncio.get_event_loop()
@@ -29,4 +28,5 @@ if __name__ == "__main__":
         dp,
         on_startup=on_startup,
         on_shutdown=on_shutdown,
+        allowed_updates=["message", "inline_query", "chat_member", "event"]
     )

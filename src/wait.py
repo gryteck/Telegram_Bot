@@ -29,3 +29,4 @@ class Wait(StatesGroup):
     get_form_by_username = State()
 
     get_photo = State()
+    get_link = State()
