@@ -21,10 +21,17 @@ async def my_form_answer(message: types.Message, state: FSMContext):
         await message.answer("Для начала давай выберем пол", reply_markup=kb.key_gender())
         await Wait.set_gender.set()
     elif message.text == "2":
-        await message.answer("Вводи новый текст анкеты", reply_markup=kb.custom("Оставить текущее"))
+        try:
+            await message.answer(t.set_text((await state.get_data())['text']), reply_markup=kb.custom("Оставить текущее"))
+        except KeyError:
+            await message.answer(t.set_text())
         await Wait.change_text.set()
     elif message.text == "3":
-        await message.answer("Отправляй фото!", reply_markup=kb.custom("Оставить текущее"))
+        try:
+            await bot.send_photo(photo=(await state.get_data())['photo'], chat_id=id, caption=t.current_photo)
+            await message.answer(text=t.set_photo(), reply_markup=kb.custom("Оставить текущее"))
+        except KeyError:
+            await bot.send_message(text=t.set_photo(), chat_id=id, reply_markup=types.ReplyKeyboardRemove())
         await Wait.change_photo.set()
     elif message.text in ["4", "Продолжить"]: await random_form(message, state, id, db.get_form(id))
     else: return await message.reply(t.invalid_answer)
@@ -75,12 +82,12 @@ async def age(message: types.Message, state: FSMContext):
         return await random_form(message, state, message.from_user.id, db.get_form(message.from_user.id))
     try:
         if int(message.text) not in range(18, 35): return await message.reply(t.age_out_of_range)
-    except(TypeError, ValueError): return await message.reply("Некорректный возраст")
+    except(TypeError, ValueError):
+        return await message.reply("Некорректный возраст")
     await state.update_data(age=message.text)
     try:
-        text = (await state.get_data())['text']
-        await message.answer(t.set_text, reply_markup=kb.custom("Оставить текущее"))
-    except KeyError: await message.answer(t.set_text)
+        await message.answer(t.set_text((await state.get_data())['text']), reply_markup=kb.custom("Оставить текущее"))
+    except KeyError: await message.answer(t.set_text())
     await Wait.set_text.set()
 
 
@@ -102,8 +109,7 @@ async def text(message: types.Message, state: FSMContext):
                                     reply_markup=kb.custom("Сделано!"))
     # require user to send photo
     try:
-        await bot.send_photo(photo=(await state.get_data())['photo'], chat_id=id, caption=t.current_photo,
-                             reply_markup=kb.custom("Оставить текущее"))
+        await bot.send_photo(photo=(await state.get_data())['photo'], chat_id=id, caption=t.current_photo)
         await message.answer(text=t.set_photo(), reply_markup=kb.custom("Оставить текущее"))
     except KeyError: await bot.send_message(text=t.set_photo(), chat_id=id, reply_markup=types.ReplyKeyboardRemove())
     await Wait.set_photo.set()

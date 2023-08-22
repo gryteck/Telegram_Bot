@@ -16,7 +16,7 @@ from db.schema import db
 @dp.message_handler(state=Wait.form_reaction)
 async def form_reaction(message: types.Message, state: FSMContext):
     id = message.from_user.id
-    if message.text not in ("Продолжить", "Вернуться назад", "❤️", "👎", "🚫", "Сделано!"):
+    if message.text not in ("Продолжить", "Вернуться назад", "💤", "❤️", "👎", "🚫", "Сделано!"):
         return await message.reply(t.invalid_answer)
     if message.text in ("Вернуться назад", "💤"):
         await message.answer("Подождем, пока кто-то увидит твою анкету")
