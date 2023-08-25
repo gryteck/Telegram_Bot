@@ -1,4 +1,4 @@
-from aiogram import Bot, Dispatcher, executor, types
+from aiogram import types
 
 
 def key_123():
@@ -7,32 +7,41 @@ def key_123():
     return keyboard.add(*buttons)
 
 
-def key_reactions():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="Как вам человечек?")
-    buttons = ["❤️", "👎", "Вернуться назад"]
+def react():
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="Оцени",
+                                         one_time_keyboard=True)
+    buttons = ["❤️", "👎", "🚫", "💤"]
+    return keyboard.row(*buttons)
+
+
+def custom(text):
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    buttons = [text]
     return keyboard.add(*buttons)
 
 
 def key_1234():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     buttons = ["1", "2", "3", "4"]
-    return keyboard.add(*buttons)
+    return keyboard.row(*buttons)
 
 
 def key_gender():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="укажите пол...")
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,
+                                         input_field_placeholder="Укажи свой пол...")
     buttons = ["Парень", "Девушка"]
     return keyboard.add(*buttons)
 
 
 def key_interest():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="Кто вам интересен?")
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,
+                                         input_field_placeholder="Кого ищешь...")
     buttons = ["Парни", "Девушки"]
     return keyboard.add(*buttons)
 
 
 def key_empty():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="Опишите себя")
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="Опиши себя...")
     return keyboard.add("Оставить пустым")
 
 
@@ -44,12 +53,23 @@ def key_yesno():
 
 def cont():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,
-                                         input_field_placeholder="продолжить смотреть тех, кому вы понравились?")
+                                         input_field_placeholder="Продолжить?")
     return keyboard.add("Продолжить")
 
 
 def back():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,
-                                         input_field_placeholder="вернуться")
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     return keyboard.add("Вернуться назад")
-# def inl_reactions():
+
+
+def ban():
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="id...")
+    buttons = ["✅", "❌", "⁉️", "↩️"]
+    return keyboard.row(*buttons)
+
+
+def match(id):
+    if type(id) == int: button_url = f'tg://user?id={id}'
+    else: button_url = f't.me/{id}'
+    markup = types.InlineKeyboardMarkup()
+    return markup.add(types.InlineKeyboardButton(text="Написать человечку", url=button_url))

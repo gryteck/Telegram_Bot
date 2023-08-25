@@ -1,0 +1,43 @@
+version: "3"
+services:
+  postgres:
+    image: library/postgres:13
+    container_name: postgres
+    restart: on-failure
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: akira
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./postgres/:/docker-entrypoint-initdb.d/
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis
+    container_name: redis
+    restart: on-failure
+    environment:
+      - REDIS_MAXMEMORY=500mb
+      - REDIS_MAXCLIENTS=1000
+      - REDIS_LOGLEVEL=notice
+    ports:
+      - "6379:6379"
+    logging:
+      driver: none
+
+  gateway:
+    image: akira
+    restart: always
+    build: ./
+    container_name: akira
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+
+
+volumes:
+  db-data:
