@@ -41,8 +41,10 @@ async def form_reaction(message: types.Message, state: FSMContext):
         if id not in l['liked']:
             l['liked'].append(id)
             if len(l['liked']) in [1, 5, 10, 15]:
-                try: await bot.send_message(text=t.liked(l), chat_id=liked_id, reply_markup=kb.cont())
-                except (exceptions.BotBlocked, exceptions.ChatNotFound): db.patch_visible(liked_id, False)
+                try:
+                    await bot.send_message(text=t.liked(l), chat_id=liked_id, reply_markup=kb.cont())
+                except (exceptions.BotBlocked, exceptions.ChatNotFound, exceptions.UserDeactivated):
+                    db.patch_visible(liked_id, False)
             db.patch_liked(liked_id, l['liked'])
     # вывод рандомной анкеты
     await random_form(message, state, id, f)

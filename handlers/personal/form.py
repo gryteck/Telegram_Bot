@@ -86,7 +86,10 @@ async def age(message: types.Message, state: FSMContext):
         return await message.reply("Некорректный возраст")
     await state.update_data(age=message.text)
     try:
-        await message.answer(t.set_text((await state.get_data())['text']), reply_markup=kb.custom("Оставить текущее"))
+        if (text := (await state.get_data())['text']) is not None:
+            await message.answer(t.set_text(text), reply_markup=kb.custom("Оставить текущее"))
+        else:
+            await message.answer(t.set_text())
     except KeyError: await message.answer(t.set_text())
     await Wait.set_text.set()
 
