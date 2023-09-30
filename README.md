@@ -3,7 +3,7 @@
 Асинхронный Telegram Бот AKIRA для знакомств с системой администрирования и поддержки. (асинхронные запросы к бд)
 
 Система состоит из Frontend, Backend, PgSQL и Redis.
-- Взаимодействие с бд происходит в [schema.py](db/schema.py) с помощью асинхронной библиотеки `asyncpg`
+- Взаимодействие с бд происходит в [schema.py](services/matchbot/db/schema.py) с помощью асинхронной библиотеки `asyncpg`
 - Взаимодействие с Telegram через асинхронная библиотека `aiogram`
 - Сборка в контейнеры прописана в [docker-compose.yaml](docker-compose.yaml)
 - Возможно развернут на VM, [можно тестить](https://t.me/my_buckwheat_bot).
@@ -24,6 +24,6 @@ Idef0 диаграмма бота:
 ![alt text](photos/state_machine.png)
 
 
-Схема таблиц в [бд](db/schema.py):
+Схема таблиц в [бд](services/matchbot/db/schema.py):
 
 ![alt text](photos/tables.png)

@@ -27,17 +27,27 @@ services:
     logging:
       driver: none
 
-  gateway:
-    image: akira
+  matchbot:
+    image: matchbot
     restart: always
-    build: ./
-    container_name: akira
+    build: ./services/matchbot
+    container_name: matchbot
     ports:
       - "8080:8080"
     depends_on:
       - postgres
       - redis
 
+  qrcodes:
+    image: qrcodes
+    restart: always
+    build: ./services/matchbot
+    container_name: qrcodes
+    ports:
+      - "8070:8070"
+    depends_on:
+      - postgres
+      - redis
 
 volumes:
   db-data:
