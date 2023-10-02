@@ -170,7 +170,7 @@ def like_list(a: dict) -> str:
     return random.choice(["Твоя анкета понравилась данному пользователю:",
                           "Смотри, кто тобой заинтересовался!",
                           "Данный пользователь хочет с тобой познакомиться!"
-                          ]) + (f" (и еще {len(a['liked']) - 1}" if len(a['liked']) > 1 else "") + "\n\n"
+                          ]) + (f" (и еще {len(a['liked']) - 1})" if len(a['liked']) > 1 else "") + "\n\n"
 
 
 def cap(a: dict) -> str:
@@ -180,22 +180,6 @@ def cap(a: dict) -> str:
         return f"{a['name']}, {a['age']}, {a['text']}"
 
 
-def cap_qr(a: dict) -> str:
-    return f"Вот твой QR код, {a['name']}!\nПокажи его на входе, чтобы попасть к нам на тусу!"
-
-
-def form_by_qr(a: dict) -> str:
-    if a['promocode']:
-        return f"Имя: {a['name']}\n" \
-               f"Статус: {a['status']}\n" \
-               f"Количество посещений: {a['visit_count']}\n" \
-               f"Промокод: {a['promocode']}\n"
-    else:
-        return f"Имя: {a['name']}\n" \
-               f"Статус: {a['status']}\n" \
-               f"Количество посещений: {a['visit_count']}\n"
-
-
 def adm_cap(a: dict) -> str:
     if a['banned']:
         state = "banned"
@@ -203,7 +187,7 @@ def adm_cap(a: dict) -> str:
         state = "active"
     else:
         state = "inactive"
-    return f"{cap(a)}\n\nState: {state}\nClaims: {a['claims']}\nLast entry: {a['active_date']}"
+    return f"{cap(a)}\n\nState: {state}\nClaims: {a['claims']}\nLast entry: {a['active_date'].date()}"
 
 
 def adm_promo(a: dict) -> str:
@@ -258,7 +242,7 @@ def text_invalid(text: str) -> bool:
             count += 1
             if count >= 4:
                 return True
-    if len(text) < 10:
+    if len(text) < 8:
         return True
     return False
 

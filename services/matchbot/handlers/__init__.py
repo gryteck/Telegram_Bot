@@ -4,6 +4,5 @@ from .claims import dp
 from .form import dp
 from .menu import dp
 from .reactions import dp
-from .qr_menu import dp
 
 __all__ = ["dp"]

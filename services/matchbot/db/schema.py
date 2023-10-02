@@ -16,8 +16,8 @@ def db_exception(func):
             self.__init__()
             res = None
         return res
-
     return inner
+
 
 class BotDB:
     def __init__(self):
@@ -37,47 +37,11 @@ class BotDB:
         self.cursor.execute("SELECT user_id FROM users WHERE id = %s", (id,))
         return bool(len(self.cursor.fetchall()))
 
-    @db_exception
-    def qr_exists(self, id: int) -> bool:
-        self.cursor.execute("SELECT qr_id FROM qrcodes WHERE id = %s", (id,))
-        return bool(len(self.cursor.fetchall()))
-
 # --------------- GET methods ----------------
-
-    @db_exception
-    def get_qr(self, id: int) -> dict:
-        self.cursor.execute("SELECT * FROM qrcodes WHERE id = %s", (id,))
-        row = self.cursor.fetchone()
-        column_names = [desc[0] for desc in self.cursor.description]
-        user_dict = {column_names[i]: row[i] for i in range(len(column_names))}
-        return user_dict
-
-    @db_exception
-    def get_promocode(self, promocode: str) -> dict:
-        self.cursor.execute("SELECT * FROM promocodes where promocode = %s", (promocode,))
-        row = self.cursor.fetchone()
-        if row:
-            column_names = [desc[0] for desc in self.cursor.description]
-            user_dict = {column_names[i]: row[i] for i in range(len(column_names))}
-            return user_dict
-        else: return {}
-
-    @db_exception
-    def get_promocodes(self) -> list:
-        self.cursor.execute("SELECT promocode FROM promocodes", (id,))
-        return [row[0] for row in self.cursor.fetchall()]
 
     @db_exception
     def get_form(self, id: int) -> dict:
         self.cursor.execute("SELECT * FROM users WHERE id = %s", (id,))
-        row = self.cursor.fetchone()
-        column_names = [desc[0] for desc in self.cursor.description]
-        user_dict = {column_names[i]: row[i] for i in range(len(column_names))}
-        return user_dict
-
-    @db_exception
-    def get_form_by_username(self, username: str) -> dict:
-        self.cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
         row = self.cursor.fetchone()
         column_names = [desc[0] for desc in self.cursor.description]
         user_dict = {column_names[i]: row[i] for i in range(len(column_names))}
@@ -109,14 +73,6 @@ class BotDB:
             return user_data
 
     @db_exception
-    def get_random_claim(self):
-        self.cursor.execute("SELECT * FROM users WHERE claims is not null ORDER BY RANDOM() LIMIT 1")
-        row = self.cursor.fetchone()
-        column_names = [desc[0] for desc in self.cursor.description]
-        user_dict = {column_names[i]: row[i] for i in range(len(column_names))}
-        return user_dict
-
-    @db_exception
     def get_noticed(self, id: int) -> list:
         result = self.cursor.fetch("SELECT noticed FROM users WHERE id = %s", (id,))
         return result[0]
@@ -130,59 +86,12 @@ class BotDB:
                             (username, id, name, age, photo, text, gender, interest, [], [], []))
         return self.conn.commit()
 
-    @db_exception
-    def post_qr(self, id, name, age, gender, username, promocode):
-        if promocode != 'qrcode':
-            self.cursor.execute("INSERT INTO qrcodes (username, id, name, age, gender, status, promocode)"
-                                "VALUES(%s, %s, %s, %s, %s, %s, %s)", (username, id, name, age, gender, "Новенький", promocode,))
-        else:
-            self.cursor.execute("INSERT INTO qrcodes (username, id, name, age, gender, status)"
-                                "VALUES(%s, %s, %s, %s, %s, %s)", (username, id, name, age, gender, "Новенький",))
-        return self.conn.commit()
-
-    @db_exception
-    def post_visit(self, id: int, a: dict):
-        if a['visit_count'] == 0:
-            self.cursor.execute(
-                "UPDATE qrcodes SET visit_count = 1, active_date = timezone('Europe/Moscow', now()), status = 'Посетитель' WHERE id = %s",
-                (id,))
-        elif a['visit_count'] == 2 and a['promocode'] is not None:
-            self.cursor.execute(
-                "UPDATE qrcodes SET visit_count = visit_count + 1, active_date = timezone('Europe/Moscow', now()), promocode = '' WHERE id = %s",
-                (id,))
-        else:
-            self.cursor.execute(
-                "UPDATE qrcodes SET visit_count = visit_count + 1, active_date = timezone('Europe/Moscow', now()) WHERE id = %s", (id,))
-
-        if a['promocode'] is not None:
-            self.cursor.execute("INSERT INTO visits (username, id, name, age, gender, status, promocode)"
-                                "VALUES(%s, %s, %s, %s, %s, %s, %s)", (a['username'], a['id'], a['name'], a['age'], a['gender'], a['status'], a['promocode'],))
-            self.cursor.execute("UPDATE promocodes SET visit_count = visit_count + 1 WHERE promocode = %s", (a['promocode'],))
-        else:
-            self.cursor.execute("INSERT INTO visits (username, id, name, age, gender, status)"
-                                "VALUES(%s, %s, %s, %s, %s, %s)",
-                                (a['username'], a['id'], a['name'], a['age'], a['gender'], a['status'],))
-        return self.conn.commit()
-
-    @db_exception
-    def post_promocode(self, name: str, promocode: str) -> str:
-        self.cursor.execute("INSERT INTO promocodes (name, promocode) VALUES(%s, %s)", (name, promocode))
-        self.conn.commit()
-        return promocode
-
 # --------------- PATCH methods ----------------
 
     @db_exception
     def patch_user(self, username: str, id: int, gender: str, interest: str, name: str, age: int, photo: str, text: str) -> None:
         self.cursor.execute("UPDATE users SET username = %s, name = %s, gender = %s, interest = %s, age = %s, photo = %s, text = %s"
                             " WHERE id = %s", (username, name, gender, interest, age, photo, text, id,))
-        return self.conn.commit()
-
-    @db_exception
-    def patch_qr(self, id, name, age, gender, username):
-        self.cursor.execute(
-            "UPDATE qrcodes SET username = %s, name = %s, age = %s, gender = %s WHERE id = %s",
-            (username, name, age, gender, id))
         return self.conn.commit()
 
     @db_exception

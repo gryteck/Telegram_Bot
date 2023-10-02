@@ -14,7 +14,7 @@ def key_123():
 def react():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="Оцени",
                                          one_time_keyboard=True)
-    buttons = ["❤️", "👎", "🚫", "💤"]
+    buttons = ["❤️", "🚫", "👎", "💤"]
     return keyboard.row(*buttons)
 
 

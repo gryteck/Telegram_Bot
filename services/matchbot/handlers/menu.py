@@ -8,7 +8,7 @@ import decor.text as t
 import decor.keyboard as kb
 
 from .reactions import random_form
-from .activity import matchbot, get_qrcode
+from .activity import matchbot
 
 from db.schema import db
 
@@ -28,13 +28,6 @@ async def menu_answer(message: types.Message, state: FSMContext):
         await Wait.delete_confirm.set()
     else:
         return await message.reply(t.invalid_answer)
-
-
-@dp.message_handler(state=Wait.start)
-async def menu_answer(message: types.Message, state: FSMContext):
-    if message.text == "Получить QR код": await get_qrcode(message, state, "qrcode")
-    elif message.text == "Начать знакомства": await matchbot(message, state)
-    else: await message.answer(t.invalid_answer)
 
 
 @dp.message_handler(state=Wait.get_photo, content_types=["photo"])
