@@ -2,7 +2,7 @@ import logging
 import traceback
 
 import psycopg2
-from config import db_url, inactive_day, inactive_time, last_active_time
+from config import pg_url, inactive_day, inactive_time, last_active_time
 
 
 def db_exception(func):
@@ -21,7 +21,7 @@ def db_exception(func):
 
 class BotDB:
     def __init__(self):
-        self.conn = psycopg2.connect(db_url)
+        self.conn = psycopg2.connect(pg_url)
         self.cursor = self.conn.cursor()
         logging.warning("Successful connection to database")
 

@@ -4,7 +4,7 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.utils import exceptions
 
-from config import dp, bot, daily_views, liked_buffer, br_photo
+from config import dp, bot, daily_views, liked_buffer
 from states import Wait
 
 import decor.keyboard as kb
