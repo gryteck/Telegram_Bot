@@ -1,9 +1,11 @@
 from aiogram import types
 
+
 def start():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     buttons = ["Получить QR код", "Начать знакомства"]
     return keyboard.add(*buttons)
+
 
 def key_123():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -73,8 +75,10 @@ def ban():
 
 
 def match(id):
-    if type(id) == int: button_url = f'tg://user?id={id}'
-    else: button_url = f't.me/{id}'
+    if type(id) == int:
+        button_url = f'tg://user?id={id}'
+    else:
+        button_url = f't.me/{id}'
     markup = types.InlineKeyboardMarkup()
     return markup.add(types.InlineKeyboardButton(text="Написать человечку", url=button_url))
 

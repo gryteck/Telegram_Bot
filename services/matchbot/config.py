@@ -1,12 +1,12 @@
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
-
+from pydantic_settings import BaseSettings
 from dotenv import dotenv_values
 
 env = dotenv_values()
 
-admins = env['ADMINS']
-supp_id = env['SUPPORT_ID']
+admins = eval(env['ADMINS'])
+supp_id = int(env['SUPPORT_ID'])
 
 media_groups = []
 promo_link = 'https://t.me/+ZekSEEP_UpM3MjIy'

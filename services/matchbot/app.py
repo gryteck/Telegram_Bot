@@ -5,9 +5,11 @@ from handlers import dp
 from handlers.activity import check_inactive
 from db.schema import db
 
+
 async def on_startup(dp):
     # Creates database connection pool
     pass
+
 
 async def on_shutdown(dp):
     # Closes database pool

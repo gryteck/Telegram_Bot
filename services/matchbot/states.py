@@ -18,9 +18,6 @@ class Wait(StatesGroup):
     menu_answer = State()
     instructions = State()
 
-
-
-
     form_reaction = State()
 
     claim = State()

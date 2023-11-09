@@ -1,14 +1,12 @@
 import asyncio
 from aiogram import types
-from aiogram.dispatcher import FSMContext
 
 import decor.keyboard as kb
 import decor.text as t
-from aiogram.utils import exceptions
 
-from config import bot, sleep_time
-from db.schema import db
-from states import Wait
+from config import bot
+from db.crud import db
+from db.redis_api import rd, Wait
 
 
 async def check_inactive():
@@ -28,19 +26,3 @@ async def check_inactive():
     #                 if user > 999: db.patch_visible(user, False)
     pass
 
-
-async def matchbot(message: types.Message, state: FSMContext) -> None:
-    id = message.from_user.id
-    if db.user_exists(id):
-        f = db.get_form(id)
-        await message.answer("Вот твоя анкета")
-        await bot.send_photo(photo=f['photo'], chat_id=id, caption=t.cap(f))
-        await message.answer(t.menu_main_text, reply_markup=kb.key_123())
-        await Wait.menu_answer.set()
-    else:
-        await state.update_data(liked_id=id)
-        await message.answer(t.instruction)
-        await bot.send_chat_action(chat_id=id, action='typing')
-        await asyncio.sleep(1)
-        await message.answer(t.set_gender, reply_markup=kb.gender())
-        await Wait.set_gender.set()

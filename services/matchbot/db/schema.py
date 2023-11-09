@@ -69,7 +69,6 @@ class BotDB:
             user_data = {}
             for i in range(len(column_names)):
                 user_data[column_names[i]] = row[i]
-            # print("okay", user_data)
             return user_data
 
     @db_exception
