@@ -24,7 +24,7 @@ async def get_ban_list(message: types.Message):
             db.update_user(liked_id, banned=False)
         elif message.text == "❌":
             db.patch_ban(liked_id, True)
-            await message.answer("Забанен")
+            await message.answer("Пользователь деактивирован")
         elif message.text == "⁉️":
             try:
                 await bot.send_message(text=t.warning_ban, chat_id=liked_id)

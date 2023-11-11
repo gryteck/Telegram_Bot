@@ -30,7 +30,7 @@ async def my_form_answer(message: types.Message):
             await bot.send_message(text=t.set_photo(), chat_id=id, reply_markup=types.ReplyKeyboardRemove())
         rd.update_state(id, Wait.change_photo)
     elif message.text == "4":
-        await random_form(message, id, db.read_user(id))
+        await random_form(message, id, db.get_user(id))
     else:
         return await message.reply(t.invalid_answer)
 
@@ -99,7 +99,7 @@ async def age(message: types.Message):
             await message.answer(t.set_text(text), reply_markup=kb.custom("Оставить текущее"))
         else:
             await message.answer(t.set_text())
-    except KeyError:
+    except (AttributeError, KeyError):
         await message.answer(t.set_text())
     rd.update_state(id, Wait.set_text)
 
@@ -135,8 +135,6 @@ async def set_photo(message: types.Message):
             return
         media_groups.append(message.media_group_id)
         return await message.answer("Кидай только одну фотку)")
-    elif message.text == "Продолжить":
-        return await random_form(message, id, db.get_form(id))
     elif message.content_type == 'text' and message.text != "Оставить текущее":
         return await message.answer(t.invalid_answer)
     elif message.content_type == 'photo':
@@ -160,7 +158,7 @@ async def set_photo(message: types.Message):
 async def delete_confirm(message: types.Message):
     id = message.from_user.id
     if message.text == "Да":
-        db.patch_visible(id, False)
+        db.update_user(id, visible=False)
         await message.answer(t.del_form, reply_markup=types.ReplyKeyboardRemove())
     elif message.text == "Нет":
         f = db.read_user(id)

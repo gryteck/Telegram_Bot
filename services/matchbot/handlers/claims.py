@@ -15,15 +15,13 @@ async def claim(message: types.Message):
     if message.text not in ("1", "2", "3", "4"):
         await message.reply("Нет такого варианта ответа")
         return await Wait.claim.set()
-    data = rd.get_data(id)
-    f = db.get_user(id)
-    liked_id = data.liked_id
-    l = db.get_user(liked_id)
+    f, l = db.get_user(id), db.get_user(rd.get_data(id).liked_id)
     if message.text in ["1", "2"]:
-        if str(id) not in l.noticed:
-            db.patch_claims(liked_id, l.noticed + [id], l.claims+message.text)
-        if liked_id in f.liked:
-            f.liked = db.patch_liked(id, f.liked[:-1])
+        if id not in l.noticed:
+            f = db.update_user(l.id, noticed=l.noticed+[id], claims=l.claims+[message.text])
+            db.create_action(id, l.id, 'claim')
+        if l.id in f.liked:
+            f = db.update_user(id, liked=f.liked[:-1])
         await message.answer(t.ban_thq)
     if message.text == "3":
         await message.answer(t.claim_text, reply_markup=kb.back())
@@ -41,11 +39,11 @@ async def claim_text(message: types.Message):
         return rd.update_state(id, Wait.claim)
     data = rd.get_data(id)
     liked_id = data.liked_id
-    l = db.get_form(liked_id)
-    f = db.get_form(id)
+    l = db.get_user(liked_id)
+    f = db.get_user(id)
     if id not in l.noticed:
-        db.patch_claims(liked_id, l.noticed.append(id), l.claims+"3")
-        db.update_user(liked_id, noticed=l.noticed+id, claims=l.claims+"3")
+        db.update_user(liked_id, noticed=l.noticed+[id], claims=l.claims+"3")
+        db.create_action(id, l.id, 'claim')
     await bot.send_photo(photo=l.photo, chat_id=supp_id,
                          caption=f"#claim {liked_id}\n{t.cap(l)}\n\nFrom {id}:\n{message.text}")
     await message.answer(t.ban_thq)

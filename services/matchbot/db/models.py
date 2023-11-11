@@ -26,4 +26,13 @@ class User(Base):
     visible = Column(Boolean, default=True, nullable=False)
 
 
+class Actions(Base):
+    __tablename__ = 'actions'
+    action_id = Column(SmallInteger, primary_key=True, index=True)
+    from_id = Column(BigInteger, nullable=False, index=True)
+    action_type = Column(Text, nullable=False)
+    to_id = Column(BigInteger, nullable=False, index=True)
+    action_date = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
 Base.metadata.create_all(bind=engine)

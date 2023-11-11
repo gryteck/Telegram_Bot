@@ -43,8 +43,9 @@ async def form_reaction(message: types.Message):
     if f.liked and l.id == f.liked[-1] and message.text in ("❤️", "👎"):
         f = db.update_user(id, liked=f.liked[:-1:])
         if message.text == "❤️":
+            db.create_action(id, l.id, 'match')
             await match_message(message, id, f, l)
-    elif message.text == "❤️" and (l.id > 999) and l.visible and not f.banned:
+    elif message.text == "❤️" and (l.id > 999) and l.visible and not f.banned and id not in db.get_liked(l.id):
         # db.patch_count(id)
         if len(l.liked) >= liked_buffer:
             db.update_user(l.id, visible=False)
@@ -55,6 +56,7 @@ async def form_reaction(message: types.Message):
                 try:
                     await bot.send_message(text=t.liked(l), chat_id=l.id, reply_markup=kb.cont())
                     rd.update_state(l.id, Wait.cont)
+                    db.create_action(id, l.id, 'like')
                 except (exceptions.BotBlocked, exceptions.ChatNotFound, exceptions.UserDeactivated):
                     db.update_user(l.id, visible=False)
     # вывод случайной анкеты
@@ -85,6 +87,7 @@ async def random_form(message: types.Message, id: int, f: User):
         if (await bot.get_chat(id)).has_private_forwards and (not (await bot.get_chat(id)).username):
             await bot.send_photo(photo=open(f"images/br.jpg", "rb"), chat_id=id, caption=t.has_private_forwards(),
                                  reply_markup=kb.custom("Сделано!"))
+            rd.update_state(f.id, Wait.cont)
             return
         return await random_message(message, id, db.get_user(id))
     # если не достигнут лимит выводим рандомные анкеты

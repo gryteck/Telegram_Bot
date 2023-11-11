@@ -43,9 +43,9 @@ class RedisDB:
         try:
             self.conn = redis.StrictRedis(host='localhost', port=6379, password='', db=1, charset="utf-8",
                                           decode_responses=True)
-            logging.warning("Successful connection to database")
+            logging.warning("Successful connection to Redis")
         except (redis.exceptions.ConnectionError, ConnectionRefusedError):
-            logging.warning("Error during connection to database")
+            logging.warning("Redis:Error during connection to database")
 
     def create_data(self, id: int, **kwargs):
         for key, value in kwargs.items():
