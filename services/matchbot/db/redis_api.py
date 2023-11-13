@@ -59,10 +59,14 @@ class RedisDB:
         return self.conn.get(f'fsm:{id}:{id}:state')
 
     def update_data(self, id: int, **kwargs):
-        data = json.loads(self.conn.get(f'fsm:{id}:{id}:data'))
-        for key, value in kwargs.items():
-            data[f"{key}"] = value
-        return self.conn.set(f'fsm:{id}:{id}:data', f"{json.dumps(data, ensure_ascii=False)}")
+        try:
+            data = json.loads(self.conn.get(f'fsm:{id}:{id}:data'))
+            for key, value in kwargs.items():
+                data[f"{key}"] = value
+            return self.conn.set(f'fsm:{id}:{id}:data', f"{json.dumps(data, ensure_ascii=False)}")
+        except TypeError:
+            for key, value in kwargs.items():
+                self.conn.hset(f'fsm:{id}:{id}:data', f'{key}', value)
 
     def update_state(self, id: int, state: Wait):
         return self.conn.set(f'fsm:{id}:{id}:state', state)
