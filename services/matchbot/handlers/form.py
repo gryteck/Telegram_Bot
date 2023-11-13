@@ -141,10 +141,10 @@ async def set_photo(message: types.Message):
         rd.update_data(id, username=message.from_user.username, photo=message.photo[-1].file_id)
     f = rd.get_data(id)
     if db.get_user(id):
-        f = db.update_user(id, username=f.username, gender=f.gender, interest=f.interest, name=f.name, age=f.age,
-                           photo=f.photo, text=f.text)
+        f = db.update_user(id, username=message.from_user.username, gender=f.gender, interest=f.interest, name=f.name,
+                           age=f.age, photo=f.photo, text=f.text)
         if not f.banned:
-            await bot.send_photo(photo=f.photo, caption=f"#upd {id} \n" + t.cap(f), chat_id=supp_id)
+            await bot.send_photo(photo=f.photo, caption=f"#upd {id} \n"+t.cap(f), chat_id=supp_id)
     else:
         f = db.create_user(f.username, id, f.gender, f.interest, f.name, f.age, f.photo, f.text)
         await bot.send_photo(photo=f.photo, caption=f"#new {id} \n" + t.cap(f), chat_id=supp_id)

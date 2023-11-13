@@ -36,7 +36,7 @@ async def form_reaction(message: types.Message):
     f = db.get_user(id)
     try:
         l = db.get_user(rd.get_data(id).liked_id)
-    except (AttributeError, KeyError):
+    except (AttributeError, KeyError, TypeError):
         return await random_form(message, id, f)
 
     # обработка реакции

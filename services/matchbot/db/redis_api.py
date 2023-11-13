@@ -48,10 +48,6 @@ class RedisDB:
         except (redis.exceptions.ConnectionError, ConnectionRefusedError):
             logging.warning("Redis:Error during connection to database")
 
-    def create_data(self, id: int, **kwargs):
-        for key, value in kwargs.items():
-            self.conn.hset(f'fsm:{id}:{id}:data', f'{key}', value)
-
     def get_data(self, id: int):
         return User(self.conn.get(f'fsm:{id}:{id}:data'))
 
@@ -61,12 +57,11 @@ class RedisDB:
     def update_data(self, id: int, **kwargs):
         try:
             data = json.loads(self.conn.get(f'fsm:{id}:{id}:data'))
-            for key, value in kwargs.items():
-                data[f"{key}"] = value
-            return self.conn.set(f'fsm:{id}:{id}:data', f"{json.dumps(data, ensure_ascii=False)}")
         except TypeError:
-            for key, value in kwargs.items():
-                self.conn.hset(f'fsm:{id}:{id}:data', f'{key}', value)
+            data = dict()
+        for key, value in kwargs.items():
+            data[f"{key}"] = value
+            self.conn.set(f'fsm:{id}:{id}:data', f"{json.dumps(data, ensure_ascii=False)}")
 
     def update_state(self, id: int, state: Wait):
         return self.conn.set(f'fsm:{id}:{id}:state', state)
