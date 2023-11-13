@@ -1,6 +1,6 @@
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
-from pydantic_settings import BaseSettings
+
 from dotenv import dotenv_values
 
 env = dotenv_values()

@@ -4,6 +4,7 @@ import redis
 
 import json
 
+from config import env
 
 class User:
     def __init__(self, data):
@@ -41,8 +42,8 @@ class Wait:
 class RedisDB:
     def __init__(self):
         try:
-            self.conn = redis.StrictRedis(host='localhost', port=6379, password='', db=1, charset="utf-8",
-                                          decode_responses=True)
+            self.conn = redis.StrictRedis(host=env['REDIS_HOST'], port=6379, password=env['REDIS_PASSWORD'], db=1,
+                                          charset="utf-8", decode_responses=True)
             logging.warning("Successful connection to Redis")
         except (redis.exceptions.ConnectionError, ConnectionRefusedError):
             logging.warning("Redis:Error during connection to database")
