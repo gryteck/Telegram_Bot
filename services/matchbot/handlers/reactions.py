@@ -91,16 +91,15 @@ async def random_form(message: types.Message, id: int, f: User):
             return
         return await random_message(message, id, db.get_user(id))
     # если не достигнут лимит выводим рандомные анкеты
-    try:
-        r = db.get_random_user(id)
-    except ValueError:
+    if r := db.get_random_user(id):
+        rd.update_data(id, liked_id=r.id)
+        await bot.send_photo(photo=r.photo, caption=t.cap(r), chat_id=id, reply_markup=kb.react())
+        return rd.update_state(id, Wait.form_reaction)
+    else:
         await message.answer(t.no_found)
         await bot.send_photo(photo=f.photo, caption=t.cap(f), chat_id=id)
         await message.answer(t.my_form_text, reply_markup=kb.key_1234())
         return rd.update_state(id, Wait.my_form_answer)
-    rd.update_data(id, liked_id=r.id)
-    await bot.send_photo(photo=r.photo, caption=t.cap(r), chat_id=id, reply_markup=kb.react())
-    return rd.update_state(id, Wait.form_reaction)
 
 
 async def random_message(message: types.Message, id: int, f: User):
