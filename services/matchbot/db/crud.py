@@ -46,11 +46,11 @@ class DB:
     def get_random_user(self, id: int) -> User:
         user = self.session.query(User).filter(User.id == id).first()
         if user.interest == 'Девушки':
-            return self.session.query(User).filter(User.id != id, User.age >= user.age - 2, User.age <= user.age + 5,
+            return self.session.query(User).filter(User.id != id, User.age >= user.age - 5, User.age <= user.age + 2,
                                                    User.banned == 'false', User.visible == 'true',
                                                    User.gender == 'Девушка').order_by(func.random()).first()
         else:
-            return self.session.query(User).filter(User.id != id, User.age >= user.age - 5, User.age <= user.age + 2,
+            return self.session.query(User).filter(User.id != id, User.age >= user.age - 2, User.age <= user.age + 5,
                                                    User.banned == 'false', User.visible == 'true',
                                                    User.gender == 'Парень').order_by(func.random()).first()
 
