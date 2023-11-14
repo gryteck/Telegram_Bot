@@ -161,7 +161,7 @@ async def delete_confirm(message: types.Message):
         db.update_user(id, visible=False)
         await message.answer(t.del_form, reply_markup=types.ReplyKeyboardRemove())
     elif message.text == "Нет":
-        f = db.read_user(id)
+        f = db.get_user(id)
         await bot.send_photo(photo=f.photo, caption=t.cap(f), chat_id=id)
         await message.answer(t.my_form_text, reply_markup=kb.key_1234())
         rd.update_state(id, Wait.my_form_answer)
