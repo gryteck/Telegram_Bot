@@ -75,7 +75,7 @@ async def random_form(message: types.Message, id: int, f: User):
         await bot.send_photo(photo=l.photo, chat_id=id, caption=t.like_list(f)+t.cap(l), reply_markup=kb.react())
         return rd.update_state(id, Wait.form_reaction)
     # проверяем количество просмотров
-    if f.active_date - datetime.now(tz=timezone(timedelta(hours=3))) < timedelta(hours=18):
+    if datetime.now(tz=timezone(timedelta(hours=3))) - f.active_date < timedelta(hours=18):
         f = db.update_user(id, view_count=f.view_count+1)
     else:
         f = db.update_user(id, active_date=datetime.now(tz=timezone(timedelta(hours=3))), view_count=1)

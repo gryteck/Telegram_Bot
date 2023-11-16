@@ -42,7 +42,7 @@ async def claim_text(message: types.Message):
     l = db.get_user(liked_id)
     f = db.get_user(id)
     if id not in l.noticed:
-        db.update_user(liked_id, noticed=l.noticed+[id], claims=l.claims+"3")
+        db.update_user(liked_id, noticed=l.noticed+[id], claims=l.claims+["3"])
         db.create_action(id, l.id, 'claim')
     await bot.send_photo(photo=l.photo, chat_id=supp_id,
                          caption=f"#claim {liked_id}\n{t.cap(l)}\n\nFrom {id}:\n{message.text}")

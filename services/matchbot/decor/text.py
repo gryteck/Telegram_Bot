@@ -159,7 +159,7 @@ def liked(a: User) -> str:
         return random.choice(["Кто-то тобой заинтересовался", "Псс, тебя лайкнули)"])
     elif a.interest == 'Парни':
         return f"{a.name}, {count} парней из Москвы хотят с тобой познакомиться!"
-    elif a['interest'] == 'Девушки':
+    elif a.interest == 'Девушки':
         return f"{a.name}, {count} девушек из Москвы хотят с тобой познакомиться!"
 
 
