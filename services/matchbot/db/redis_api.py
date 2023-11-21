@@ -1,70 +1,37 @@
-import aiogram
-import logging
-import redis
-
 import json
+from database import redis
 
-from config import env
 
 class User:
     def __init__(self, data):
         self.__dict__.update(json.loads(data))
 
 
-class Wait:
-    start = 'start'
-
-    my_form_answer = 'Wait.my_form_answer'
-    set_gender = 'Wait.set_gender'
-    set_interest = 'Wait.set_interest'
-    set_name = 'Wait.set_name'
-    set_age = 'Wait.set_age'
-    set_text = 'Wait.set_text'
-    set_photo = 'Wait.set_photo'
-    change_text = 'Wait.change_text'
-    change_photo = 'Wait.change_photo'
-    delete_confirm = 'Wait.delete_confirm'
-
-    menu_answer = "Wait.menu_answer"
-    instructions = 'Wait.instruction'
-
-    form_reaction = 'Wait.form_reaction'
-    cont = 'Wait.continue'
-
-    claim = 'Wait.claim'
-    claim_text = 'Wait.claim_text'
-
-    admin = 'Wait.admin'
-
-    get_photo = 'Wait.get_photo'
-
-
 class RedisDB:
-    def __init__(self):
-        try:
-            self.conn = redis.StrictRedis(host=env['REDIS_HOST'], port=6379, password=env['REDIS_PASSWORD'], db=1,
-                                          charset="utf-8", decode_responses=True)
-            logging.warning("Successful connection to Redis")
-        except (redis.exceptions.ConnectionError, ConnectionRefusedError):
-            logging.warning("Redis:Error during connection to database")
+    @classmethod
+    async def get_data(cls, id: int):
+        async with redis.client() as conn:
+            data = await conn.get(f'fsm:{id}:{id}:data')
+            return User(json.loads(data))
 
-    def get_data(self, id: int):
-        return User(self.conn.get(f'fsm:{id}:{id}:data'))
+    @classmethod
+    async def get_state(cls, id: int):
+        async with redis.client() as conn:
+            return await conn.get(f'fsm:{id}:{id}:state')
 
-    def get_state(self, id: int):
-        return self.conn.get(f'fsm:{id}:{id}:state')
+    @classmethod
+    async def update_data(cls, id: int, **kwargs):
+        async with redis.client() as conn:
+            try:
+                data = await conn.get(f'fsm:{id}:{id}:data')
+                data = json.loads(data)
+            except TypeError:
+                data = dict()
+            for key, value in kwargs.items():
+                data[key] = value
+            await conn.set(f'fsm:{id}:{id}:data', json.dumps(data, ensure_ascii=False))
 
-    def update_data(self, id: int, **kwargs):
-        try:
-            data = json.loads(self.conn.get(f'fsm:{id}:{id}:data'))
-        except TypeError:
-            data = dict()
-        for key, value in kwargs.items():
-            data[f"{key}"] = value
-            self.conn.set(f'fsm:{id}:{id}:data', f"{json.dumps(data, ensure_ascii=False)}")
-
-    def update_state(self, id: int, state: Wait):
-        return self.conn.set(f'fsm:{id}:{id}:state', state)
-
-
-rd = RedisDB()
+    @classmethod
+    async def update_state(cls, id: int, state: str):
+        async with redis.client() as conn:
+            await conn.set(f'fsm:{id}:{id}:state', state)

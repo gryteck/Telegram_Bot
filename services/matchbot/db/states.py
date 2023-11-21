@@ -1,8 +1,15 @@
-from aiogram.dispatcher.filters.state import State, StatesGroup
+class State:
+    def __get__(self, instance, owner):
+        return f'{owner.__name__}.{self.name}'
+
+    def __set_name__(self, owner, name):
+        self.name = name
 
 
-class Wait(StatesGroup):
+class Wait:
     start = State()
+
+    finish = State()
 
     my_form_answer = State()
     set_gender = State()
@@ -19,21 +26,11 @@ class Wait(StatesGroup):
     instructions = State()
 
     form_reaction = State()
+    cont = State()
 
     claim = State()
     claim_text = State()
 
-    admin_menu = State()
-    admin_ban_list = State()
-    admin_form_by_id = State()
-    admin_promo_check = State()
-    admin_promo_new = State()
+    admin = State()
 
     get_photo = State()
-    get_link = State()
-
-    qrcode = State()
-    qr_gender = State()
-    qr_name = State()
-    qr_age = State()
-    qr_admin = State()

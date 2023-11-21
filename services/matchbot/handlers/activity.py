@@ -1,13 +1,3 @@
-import asyncio
-from aiogram import types
-
-import decor.keyboard as kb
-import decor.text as t
-
-from config import bot
-from db.crud import db
-from db.redis_api import rd, Wait
-
 
 async def check_inactive():
     # while True:

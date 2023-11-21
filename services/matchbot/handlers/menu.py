@@ -7,23 +7,24 @@ import decor.keyboard as kb
 
 from .reactions import random_form
 
-from db.crud import db
-from db.redis_api import rd, Wait
+from db.crud import Postgre as db
+from db.redis_api import RedisDB as rd
+from db.states import Wait
 
 
 @dp.message_handler(state=Wait.menu_answer)
 async def menu_answer(message: types.Message):
     id = message.from_user.id
-    f = db.get_user(id)
+    f = await db.get_user(id)
     if message.text == "1":
         await random_form(message, id, f)
     elif message.text == "2":
         await bot.send_photo(photo=f.photo, caption=t.cap(f), chat_id=id)
         await message.answer(t.my_form_text, reply_markup=kb.key_1234())
-        rd.update_state(id, Wait.my_form_answer)
+        await rd.update_state(id, Wait.my_form_answer)
     elif message.text == "3":
         await message.answer(t.delete_q(f), reply_markup=kb.yes_no())
-        rd.update_state(id, Wait.delete_confirm)
+        await rd.update_state(id, Wait.delete_confirm)
     else:
         return await message.reply(t.invalid_answer)
 

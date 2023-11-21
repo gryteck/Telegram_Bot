@@ -1,7 +1,8 @@
 import logging
-from database import DBSession
-from sqlalchemy import func, exc
+from sqlalchemy import func, exc, select,  update
+
 from .models import User, Actions
+from database import pg_session
 
 
 def db_exception(function):
@@ -14,77 +15,90 @@ def db_exception(function):
             self.__init__()
             res = None
         return res
+
     return inner
 
 
-class DB:
-    def __init__(self):
-        self.session = DBSession()
-        logging.warning("Successful connection to Postgres")
+class Postgre:
+    @classmethod
+    async def get_user(cls, id) -> User:
+        async with pg_session() as session:
+            query = select(User).filter(User.id == id)
+            user = await session.execute(query)
+            return user.scalars().one()
 
-    def close(self):
-        logging.warning("Connection is closed")
-        self.session.close()
+    @classmethod
+    async def get_liked(cls, id: int) -> list:
+        async with pg_session() as session:
+            query = select(Actions.to_id).filter(Actions.from_id == id).filter(Actions.action_type == 'like')
+            rows = await session.execute(query)
+            return rows.scalars().all()
 
-    @db_exception
-    def get_user(self, id: int) -> User:
-        return self.session.query(User).filter(User.id == id).first()
+    @classmethod
+    async def get_claims(cls, id: int) -> list:
+        async with pg_session() as session:
+            query = select(Actions.to_id).filter(Actions.from_id == id).filter(Actions.action_type == 'claim')
+            rows = await session.execute(query)
+            return rows.scalars().all()
 
-    @db_exception
-    def get_liked(self, id: int) -> list:
-        query = self.session.query(Actions.to_id).filter(Actions.from_id == id).filter(Actions.action_type == 'like')
-        user_ids = [row[0] for row in query.all()]
-        return user_ids
+    @classmethod
+    async def get_random_user(cls, id: int) -> User:
+        async with pg_session() as session:
+            user = await Postgre.get_user(id)
+            if user.interest == 'Девушки':
+                query = select(User).filter(User.id != id, User.age >= user.age - 5, User.age <= user.age + 2,
+                                            User.banned.is_(False), User.visible.is_(True),
+                                            User.gender == 'Девушка').order_by(func.random()).limit(1)
+                user = await session.execute(query)
+                return user.scalars().one()
+            else:
+                query = select(User).filter(User.id != id, User.age >= user.age - 2, User.age <= user.age + 5,
+                                            User.banned.is_(False), User.visible.is_(True),
+                                            User.gender == 'Парень').order_by(func.random()).limit(1)
+                user = await session.execute(query)
+                return user.scalars().one()
 
-    @db_exception
-    def get_claims(self, id: int) -> list:
-        query = self.session.query(Actions.to_id).filter(Actions.from_id == id).filter(Actions.action_type == 'claims')
-        user_ids = [row[0] for row in query.all()]
-        return user_ids
-
-    @db_exception
-    def get_random_user(self, id: int) -> User:
-        user = self.session.query(User).filter(User.id == id).first()
-        if user.interest == 'Девушки':
-            return self.session.query(User).filter(User.id != id, User.age >= user.age - 5, User.age <= user.age + 2,
-                                                   User.banned == 'false', User.visible == 'true',
-                                                   User.gender == 'Девушка').order_by(func.random()).first()
-        else:
-            return self.session.query(User).filter(User.id != id, User.age >= user.age - 2, User.age <= user.age + 5,
-                                                   User.banned == 'false', User.visible == 'true',
-                                                   User.gender == 'Парень').order_by(func.random()).first()
-
-    @db_exception
-    def create_user(self, username: str, id: int, gender: str, interest: str, name: str, age: int, photo: str,
+    @classmethod
+    async def create_user(cls, username: str, id: int, gender: str, interest: str, name: str, age: int, photo: str,
                     text: str) -> User:
-        new_user = User(id=id, username=username, name=name, age=age, photo=photo, text=text, gender=gender,
-                        interest=interest)
-        self.session.begin()
-        self.session.add(new_user)
-        self.session.commit()
-        return new_user
+        async with pg_session() as session:
+            new_user = User(id=id, username=username, name=name, age=age, photo=photo, text=text, gender=gender,
+                            interest=interest)
+            session.add(new_user)
+            await session.commit()
+            return new_user
 
-    @db_exception
-    def create_action(self, from_id: int, to_id: int, action_type: str):
-        self.session.begin()
-        self.session.add(Actions(from_id=from_id, to_id=to_id, action_type=action_type))
-        return self.session.commit()
+    @classmethod
+    async def create_action(cls, from_id: int, to_id: int, action_type: str):
+        async with pg_session() as session:
+            new_action = Actions(from_id=from_id, to_id=to_id, action_type=action_type)
+            session.add(new_action)
+            await session.commit()
+            return new_action
 
-    @db_exception
-    def update_user(self, id: int, **kwargs) -> User:
-        self.session.begin()
-        user = self.session.query(User).filter(User.id == id).first()
-        for key, value in kwargs.items():
-            setattr(user, key, value)
-        self.session.commit()
-        return user
+    # @classmethod
+    # async def update_user(cls, id, **kwargs):
+    #     async with pg_session() as session:
+    #         async with session.begin():
+    #             user = await cls.get_user(id)
+    #             if user:
+    #                 for attr, value in kwargs.items():
+    #                     setattr(user, attr, value)
+    #                 await session.commit()
+    #                 return user
 
-    @db_exception
-    def filter_liked(self, liked: list) -> list:
-        query = self.session.query(User.id).filter(User.id.in_(liked)).filter(User.visible == 'true').\
-            filter(User.banned == 'false')
-        user_ids = [row[0] for row in query.all()]
-        return user_ids
+    @classmethod
+    async def update_user(cls, id, **kwargs):
+        async with pg_session() as session:
+            query = update(User).where(User.id == id).values(**kwargs).returning(User)
+            result = await session.execute(query)
+            user = result.scalar_one_or_none()
+            await session.commit()
+            return user
 
-
-db = DB()
+    @classmethod
+    async def filter_liked(cls, liked: list):
+        async with pg_session() as session:
+            query = select(User.id).filter(User.id.in_(liked), User.banned.is_(False), User.visible.is_(True))
+            rows = await session.execute(query)
+            return rows.scalars().all()
