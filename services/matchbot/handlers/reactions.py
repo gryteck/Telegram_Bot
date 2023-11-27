@@ -47,7 +47,7 @@ async def form_reaction(message: types.Message):
         if message.text == "❤️":
             await db.create_action(id, l.id, 'match')
             await match_message(message, id, f, l)
-    elif message.text == "❤️" and (l.id > 999) and l.visible and not f.banned and id not in await db.get_liked(l.id):
+    elif message.text == "❤️" and (l.id > 999) and l.visible and not f.banned and (l.id not in await db.get_liked(id)):
         if len(l.liked) >= liked_buffer:
             await db.update_user(l.id, visible=False)
         if id not in l.liked:

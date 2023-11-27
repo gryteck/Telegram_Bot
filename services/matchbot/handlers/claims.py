@@ -15,7 +15,7 @@ async def claim(message: types.Message):
     id = message.from_user.id
     if message.text not in ("1", "2", "3", "4"):
         await message.reply("Нет такого варианта ответа")
-        return await Wait.claim.set()
+        return await rd.update_state(id, Wait.claim)
     f, l = await db.get_user(id), await db.get_user(await rd.get_data(id).liked_id)
     if message.text in ["1", "2"]:
         if id not in l.noticed:
