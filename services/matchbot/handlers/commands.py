@@ -26,11 +26,11 @@ async def command_admin(message: types.Message):
     id = message.from_user.id
     if id in admins:
         await message.answer("Кидай id пользователя")
-        rd.update_state(id, Wait.admin)
+        await rd.update_state(id, Wait.admin)
     else:
         await message.answer("Данная функция вам недоступна")
         await message.answer(t.menu_main_text, reply_markup=kb.key_123())
-        rd.update_state(id, Wait.menu_answer)
+        await rd.update_state(id, Wait.menu_answer)
 
 
 @dp.message_handler(commands="restart", state="*")
@@ -46,7 +46,7 @@ async def command_restart(message: types.Message):
 @dp.message_handler(commands=['start', 'matchbot'], state="*")
 async def command_start(message: types.Message):
     id = message.from_user.id
-    if f := await db.get_user(id):
+    if f := await db.exists_user(id):
         await message.answer("Вот твоя анкета")
         await bot.send_photo(photo=f.photo, chat_id=id, caption=t.cap(f))
         await message.answer(t.menu_main_text, reply_markup=kb.key_123())
@@ -57,13 +57,13 @@ async def command_start(message: types.Message):
         await bot.send_chat_action(chat_id=id, action='typing')
         await sleep(1)
         await message.answer(t.set_gender, reply_markup=kb.gender())
-        rd.update_state(id, Wait.set_gender)
+        await rd.update_state(id, Wait.set_gender)
 
 
 @dp.message_handler(commands="my_profile", state="*")
 async def my_profile(message: types.Message):
     id = message.from_user.id
-    if not (f := await db.get_user(id)):
+    if not (f := await db.exists_user(id)):
         await rd.update_data(id, liked_id=id)
         await message.answer(t.instruction)
         await message.answer(t.set_gender, reply_markup=kb.gender())

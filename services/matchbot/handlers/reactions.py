@@ -70,7 +70,7 @@ async def random_form(message: types.Message, id: int, f: User):
         await db.update_user(id, visible=True)
     f.liked = await db.filter_liked(f.liked)
     if f.liked:
-        await db.update_user(id, count=f.view_count+1)
+        await db.update_user(id, view_count=f.view_count+1)
         l = await db.get_user(f.liked[-1])
         await rd.update_data(id, liked_id=l.id)
         await bot.send_photo(photo=l.photo, chat_id=id, caption=t.like_list(f)+t.cap(l), reply_markup=kb.react())

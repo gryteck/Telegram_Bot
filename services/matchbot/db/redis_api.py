@@ -4,7 +4,7 @@ from database import redis
 
 class User:
     def __init__(self, data):
-        self.__dict__.update(json.loads(data))
+        self.__dict__.update(data)
 
 
 class RedisDB:

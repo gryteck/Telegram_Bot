@@ -19,13 +19,13 @@ async def my_form_answer(message: types.Message):
         await rd.update_state(id, Wait.set_gender)
     elif message.text == "2":
         try:
-            await message.answer(t.set_text((await rd.read_data(id)).text), reply_markup=kb.custom("Оставить текущее"))
+            await message.answer(t.set_text((await rd.get_data(id)).text), reply_markup=kb.custom("Оставить текущее"))
         except (AttributeError, KeyError, exceptions.BadRequest):
             await message.answer(t.set_text(), reply_markup=types.ReplyKeyboardRemove())
         await rd.update_state(id, Wait.change_text)
     elif message.text == "3":
         try:
-            await bot.send_photo(photo=await rd.read_data(id).photo, chat_id=id, caption=t.current_photo)
+            await bot.send_photo(photo=(await rd.get_data(id)).photo, chat_id=id, caption=t.current_photo)
             await message.answer(text=t.set_photo(), reply_markup=kb.custom("Оставить текущее"))
         except (AttributeError, KeyError, exceptions.BadRequest):
             await bot.send_message(text=t.set_photo(), chat_id=id, reply_markup=types.ReplyKeyboardRemove())
@@ -80,7 +80,7 @@ async def name(message: types.Message):
     await bot.send_chat_action(chat_id=id, action='typing')
     await sleep(1)
     try:
-        await message.answer('Сколько тебе лет?', reply_markup=kb.custom(rd.get_data(id).age))
+        await message.answer('Сколько тебе лет?', reply_markup=kb.custom((await rd.get_data(id)).age))
     except (AttributeError, KeyError, exceptions.BadRequest):
         await message.answer('Сколько тебе лет?', reply_markup=types.ReplyKeyboardRemove())
     await rd.update_state(id, Wait.set_age)
@@ -96,7 +96,7 @@ async def age(message: types.Message):
         return await message.reply("Некорректный возраст")
     await rd.update_data(id, age=int(message.text))
     try:
-        if (text := await rd.get_data(id).text) is not None:
+        if (text := (await rd.get_data(id)).text) is not None:
             await message.answer(t.set_text(text), reply_markup=kb.custom("Оставить текущее"))
         else:
             await message.answer(t.set_text())
@@ -141,7 +141,7 @@ async def set_photo(message: types.Message):
     elif message.content_type == 'photo':
         await rd.update_data(id, username=message.from_user.username, photo=message.photo[-1].file_id)
     f = await rd.get_data(id)
-    if await db.get_user(id):
+    if await db.exists_user(id):
         f = await db.update_user(id, username=message.from_user.username, gender=f.gender, interest=f.interest,
                                  name=f.name, age=f.age, photo=f.photo, text=f.text)
         if not f.banned:

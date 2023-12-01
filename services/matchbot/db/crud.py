@@ -21,6 +21,13 @@ def db_exception(function):
 
 class Postgre:
     @classmethod
+    async def exists_user(cls, id) -> User:
+        async with pg_session() as session:
+            query = select(User).filter(User.id == id)
+            user = await session.execute(query)
+            return user.scalar_one_or_none()
+
+    @classmethod
     async def get_user(cls, id) -> User:
         async with pg_session() as session:
             query = select(User).filter(User.id == id)
@@ -50,13 +57,13 @@ class Postgre:
                                             User.banned.is_(False), User.visible.is_(True),
                                             User.gender == 'Девушка').order_by(func.random()).limit(1)
                 user = await session.execute(query)
-                return user.scalars().one()
+                return user.scalar_one_or_none()
             else:
                 query = select(User).filter(User.id != id, User.age >= user.age - 2, User.age <= user.age + 5,
                                             User.banned.is_(False), User.visible.is_(True),
                                             User.gender == 'Парень').order_by(func.random()).limit(1)
                 user = await session.execute(query)
-                return user.scalars().one()
+                return user.scalar_one_or_none()
 
     @classmethod
     async def create_user(cls, username: str, id: int, gender: str, interest: str, name: str, age: int, photo: str,
