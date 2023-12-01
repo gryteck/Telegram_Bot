@@ -20,7 +20,7 @@ async def get_ban_list(message: types.Message):
     except (ValueError, IndexError, TypeError):
         if message.text not in ("↩️", "✅", "❌", "⁉️"):
             return await message.answer("Ты че мудришь, норм отвечай")
-        liked_id = await rd.get_data(id).liked_id
+        liked_id = (await rd.get_data(id)).liked_id
         if message.text == "✅":
             await db.update_user(liked_id, banned=False)
         elif message.text == "❌":
