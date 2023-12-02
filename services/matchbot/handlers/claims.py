@@ -19,7 +19,7 @@ async def claim(message: types.Message):
     f, l = await db.get_user(id), await db.get_user((await rd.get_data(id)).liked_id)
     if message.text in ["1", "2"]:
         if id not in l.noticed:
-            f = await db.update_user(l.id, noticed=l.noticed+[id], claims=l.claims+[message.text])
+            f = await db.update_user(l.id, noticed=l.noticed+[id], claims=l.claims+[int(message.text)])
             await db.create_action(id, l.id, 'claim')
         if l.id in f.liked:
             f = await db.update_user(id, liked=f.liked[:-1])
@@ -43,7 +43,7 @@ async def claim_text(message: types.Message):
     l = await db.get_user(liked_id)
     f = await db.get_user(id)
     if id not in l.noticed:
-        await db.update_user(liked_id, noticed=l.noticed+[id], claims=l.claims+["3"])
+        await db.update_user(liked_id, noticed=l.noticed+[id], claims=l.claims+[3])
         await db.create_action(id, l.id, 'claim')
     await bot.send_photo(photo=l.photo, chat_id=supp_id,
                          caption=f"#claim {liked_id}\n{t.cap(l)}\n\nFrom {id}:\n{message.text}")

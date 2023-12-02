@@ -108,4 +108,4 @@ class Postgre:
         async with pg_session() as session:
             query = select(User.id).filter(User.id.in_(liked), User.banned.is_(False), User.visible.is_(True))
             rows = await session.execute(query)
-            return rows.scalars().all()
+            return liked if len(liked) == len(r := rows.scalars().all()) else [i for i in liked if i in r]

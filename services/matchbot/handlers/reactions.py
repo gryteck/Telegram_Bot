@@ -42,8 +42,8 @@ async def form_reaction(message: types.Message):
         return await random_form(message, id, f)
 
     # обработка реакции
-    if f.liked and l.id == f.liked[-1] and message.text in ("❤️", "👎"):
-        f = await db.update_user(id, liked=f.liked[:-1:])
+    if f.liked and l.id == f.liked[0] and message.text in ("❤️", "👎"):
+        f = await db.update_user(id, liked=f.liked[1::])
         if message.text == "❤️":
             await db.create_action(id, l.id, 'match')
             await match_message(message, id, f, l)
@@ -65,13 +65,13 @@ async def form_reaction(message: types.Message):
 
 
 async def random_form(message: types.Message, id: int, f: User):
-    # выводим людей из буфера f['liked']
+    # выводим людей из буфера f.liked
     if not f.visible and len(f.liked) < liked_buffer:
         await db.update_user(id, visible=True)
     f.liked = await db.filter_liked(f.liked)
     if f.liked:
         await db.update_user(id, view_count=f.view_count+1)
-        l = await db.get_user(f.liked[-1])
+        l = await db.get_user(f.liked[0])
         await rd.update_data(id, liked_id=l.id)
         await bot.send_photo(photo=l.photo, chat_id=id, caption=t.like_list(f)+t.cap(l), reply_markup=kb.react())
         return await rd.update_state(id, Wait.form_reaction)
