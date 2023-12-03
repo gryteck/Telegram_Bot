@@ -42,8 +42,9 @@ async def form_reaction(message: types.Message):
         return await random_form(message, id, f)
 
     # обработка реакции
-    if f.liked and l.id == f.liked[0] and message.text in ("❤️", "👎"):
-        f = await db.update_user(id, liked=f.liked[1::])
+    if l.id in f.liked and message.text in ("❤️", "👎"):
+        f.liked.remove(l.id)
+        f = await db.update_user(id, liked=f.liked)
         if message.text == "❤️":
             await db.create_action(id, l.id, 'match')
             await match_message(message, id, f, l)
@@ -51,8 +52,7 @@ async def form_reaction(message: types.Message):
         if len(l.liked) >= liked_buffer:
             await db.update_user(l.id, visible=False)
         if id not in l.liked:
-            l.liked = l.liked+[id]
-            await db.update_user(l.id, liked=l.liked)
+            l = await db.update_user(l.id, liked=await db.filter_liked(l.liked+[id]))
             if len(l.liked) in [1, 5, 10, 15]:
                 try:
                     await bot.send_message(text=t.liked(l), chat_id=l.id, reply_markup=kb.cont())
