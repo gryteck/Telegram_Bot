@@ -13,12 +13,13 @@ from .reactions import random_form
 @dp.message_handler(state=Wait.claim)
 async def claim(message: types.Message):
     id = message.from_user.id
+
     if message.text not in ("1", "2", "3", "4"):
         await message.reply("Нет такого варианта ответа")
         return await rd.update_state(id, Wait.claim)
     f, l = await db.get_user(id), await db.get_user((await rd.get_data(id)).liked_id)
     if message.text in ["1", "2"]:
-        if id not in l.noticed:
+        if id not in l.noticed and l.id < 999:
             f = await db.update_user(l.id, noticed=l.noticed+[id], claims=l.claims+[int(message.text)])
             await db.create_action(id, l.id, 'claim')
         if l.id in f.liked:
@@ -42,7 +43,7 @@ async def claim_text(message: types.Message):
     liked_id = data.liked_id
     l = await db.get_user(liked_id)
     f = await db.get_user(id)
-    if id not in l.noticed:
+    if id not in l.noticed and l.id < 999:
         await db.update_user(liked_id, noticed=l.noticed+[id], claims=l.claims+[3])
         await db.create_action(id, l.id, 'claim')
     await bot.send_photo(photo=l.photo, chat_id=supp_id,

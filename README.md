@@ -1,14 +1,14 @@
 # Telegram_Bot
 
 Асинхронный Telegram Бот AKIRA для знакомств (с системой администрирования и поддержкой)
-<h5> Стек технологий: [ Aiogram, (Async) PostgreSQL, (Async) Redis, Docker Compose ] </h5>
+<h5> Стек технологий: Telegram API (aiogram), PostgreSQL (sqlalchemy, asyncpg), Redis (aioredis), Docker Compose</h5>
 
-
-- Взаимодействие с бд происходит в [schema.py](services/matchbot/db/schema.py) с помощью библиотеки `psycopg`
 - Взаимодействие с Telegram через асинхронную библиотеку `aiogram`
+- Взаимодействие с `PostgreSQL` происходит асинхронно в [crud.py](services/matchbot/db/crud.py) с помощью библиотеки `sqlalchemy`
+- В качестве NoSQL используется `Redis` для оптимизации SQL запросов в [].
 - Сборка в контейнеры прописана в [docker-compose.yaml](docker-compose.yaml)
-- Уже запущен в прод на VM, [можно тестить](https://t.me/akira_matchbot=start?ref).
-- В качестве NoSQL используется `Redis` для оптимизации SQL запросов.
+- Уже запущен в прод и развернут на сервере, [можно тестить](https://t.me/akira_matchbot=start?ref).
+
 
 Структура взаимодействия элементов системы:
 ![alt text](photos/system_diagram.png)
@@ -25,6 +25,6 @@ Idef0 диаграмма бота:
 ![alt text](photos/state_machine.png)
 
 
-Схема таблиц в [бд](services/matchbot/db/schema.py):
+Схема таблиц в [models.py](services/matchbot/db/models.py):
 
 ![alt text](photos/tables.png)

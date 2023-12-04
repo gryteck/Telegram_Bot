@@ -75,7 +75,9 @@ async def random_form(message: types.Message, id: int, f: User):
         await rd.update_data(id, liked_id=l.id)
         await bot.send_photo(photo=l.photo, chat_id=id, caption=t.like_list(f)+t.cap(l), reply_markup=kb.react())
         return await rd.update_state(id, Wait.form_reaction)
+
     # проверяем количество просмотров
+
     if datetime.now(tz=timezone(timedelta(hours=3))) - f.active_date < timedelta(hours=18):
         f = await db.update_user(id, view_count=f.view_count+1)
     else:
@@ -91,7 +93,9 @@ async def random_form(message: types.Message, id: int, f: User):
             await rd.update_state(f.id, Wait.cont)
             return
         return await random_message(message, id, await db.get_user(id))
+
     # если не достигнут лимит выводим рандомные анкеты
+
     if r := await db.get_random_user(id):
         await rd.update_data(id, liked_id=r.id)
         await bot.send_photo(photo=r.photo, caption=t.cap(r), chat_id=id, reply_markup=kb.react())
