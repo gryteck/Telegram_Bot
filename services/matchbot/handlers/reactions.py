@@ -42,12 +42,21 @@ async def form_reaction(message: types.Message):
         return await random_form(message, id, f)
 
     # обработка реакции
+    await reaction_processing(message, id, f, l)
+
+    # вывод случайной анкеты
+    await random_form(message, id, f)
+
+
+async def reaction_processing(message: types.Message, id: int, f: User, l: User):
+    # если реакция была на пользователя из буфера
     if l.id in f.liked and message.text in ("❤️", "👎"):
         f.liked.remove(l.id)
         f = await db.update_user(id, liked=f.liked)
         if message.text == "❤️":
             await db.create_action(id, l.id, 'match')
             await match_message(message, id, f, l)
+
     elif message.text == "❤️" and (l.id > 999) and l.visible and not f.banned and (l.id not in await db.get_liked(id)):
         if len(l.liked) >= liked_buffer:
             await db.update_user(l.id, visible=False)
@@ -60,15 +69,16 @@ async def form_reaction(message: types.Message):
                     await db.create_action(id, l.id, 'like')
                 except (exceptions.BotBlocked, exceptions.ChatNotFound, exceptions.UserDeactivated):
                     await db.update_user(l.id, visible=False)
-    # вывод случайной анкеты
-    await random_form(message, id, f)
 
 
 async def random_form(message: types.Message, id: int, f: User):
-    # выводим людей из буфера f.liked
+    # делаем пользователя активным если буфер < liked_buffer
     if not f.visible and len(f.liked) < liked_buffer:
         await db.update_user(id, visible=True)
-    f.liked = await db.filter_liked(f.liked)
+
+    # фильтруем буфер
+    f = await db.update_user(id, liked=await db.filter_liked(f.liked))
+
     if f.liked:
         await db.update_user(id, view_count=f.view_count+1)
         l = await db.get_user(f.liked[0])
@@ -77,7 +87,6 @@ async def random_form(message: types.Message, id: int, f: User):
         return await rd.update_state(id, Wait.form_reaction)
 
     # проверяем количество просмотров
-
     if datetime.now(tz=timezone(timedelta(hours=3))) - f.active_date < timedelta(hours=18):
         f = await db.update_user(id, view_count=f.view_count+1)
     else:
@@ -95,7 +104,6 @@ async def random_form(message: types.Message, id: int, f: User):
         return await random_message(message, id, await db.get_user(id))
 
     # если не достигнут лимит выводим рандомные анкеты
-
     if r := await db.get_random_user(id):
         await rd.update_data(id, liked_id=r.id)
         await bot.send_photo(photo=r.photo, caption=t.cap(r), chat_id=id, reply_markup=kb.react())

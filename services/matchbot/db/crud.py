@@ -1,5 +1,5 @@
 import logging
-from sqlalchemy import func, exc, select,  update
+from sqlalchemy import func, exc, select, update
 
 from .models import User, Actions
 from database import pg_session
@@ -67,7 +67,7 @@ class Postgre:
 
     @classmethod
     async def create_user(cls, username: str, id: int, gender: str, interest: str, name: str, age: int, photo: str,
-                    text: str) -> User:
+                          text: str) -> User:
         async with pg_session() as session:
             new_user = User(id=id, username=username, name=name, age=age, photo=photo, text=text, gender=gender,
                             interest=interest)
