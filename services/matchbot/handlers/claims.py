@@ -1,7 +1,7 @@
 import decor.keyboard as kb
 import decor.text as t
 from aiogram import types
-from config import dp, bot, supp_id
+from config import dp, bot, settings
 
 from db.crud import Postgre as db
 from db.redis_api import RedisDB as rd
@@ -46,7 +46,7 @@ async def claim_text(message: types.Message):
     if id not in l.noticed and l.id < 999:
         await db.update_user(liked_id, noticed=l.noticed+[id], claims=l.claims+[3])
         await db.create_action(id, l.id, 'claim')
-    await bot.send_photo(photo=l.photo, chat_id=supp_id,
+    await bot.send_photo(photo=l.photo, chat_id=settings.SUPPORT_ID,
                          caption=f"#claim {liked_id}\n{t.cap(l)}\n\nFrom {id}:\n{message.text}")
     await message.answer(t.ban_thq)
     # вывод анкеты

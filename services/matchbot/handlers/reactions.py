@@ -4,7 +4,7 @@ from aiogram import types
 from aiogram.utils import exceptions
 from datetime import datetime, timezone, timedelta
 
-from config import dp, bot, daily_views, liked_buffer
+from config import dp, bot, settings
 
 import decor.keyboard as kb
 import decor.text as t
@@ -44,9 +44,9 @@ async def form_reaction(message: types.Message):
     # обработка реакции
     if l.id in f.liked and message.text in ("❤️", "👎"):
         await buffer_processing(message, id, f, l)
-    elif message.text == "❤️" and (l.id > 999) and l.visible and not f.banned and (l.id not in await db.filter_liked(id)):
+    elif message.text == "❤️" and (l.id > 999) and l.visible and not f.banned and (
+            l.id not in await db.filter_liked(id)):
         await reaction_processing(message, id, f, l)
-
 
     # вывод случайной анкеты
     await random_form(message, id, f)
@@ -62,7 +62,7 @@ async def buffer_processing(message: types.Message, id: int, f: User, l: User):
 
 async def reaction_processing(message: types.Message, id: int, f: User, l: User):
     if id not in l.liked:
-        l = await db.update_user(l.id, liked=await db.filter_liked(l.liked+[id]))
+        l = await db.update_user(l.id, liked=await db.filter_liked(l.liked + [id]))
         if len(l.liked) in [1, 5, 10, 15]:
             try:
                 await bot.send_message(text=t.liked(l), chat_id=l.id, reply_markup=kb.cont())
@@ -84,6 +84,7 @@ async def get_user_from_liked(message: types.Message, id: int, f: User, l: User)
         await bot.send_photo(photo=l.photo, chat_id=id, caption=t.like_list(f) + t.cap(l), reply_markup=kb.react())
         return await rd.update_state(id, Wait.form_reaction)
 
+
 async def reaction_processing2(message: types.Message, id: int, f: User, l: User):
     # если реакция была на пользователя из буфера
     if l.id in f.liked and message.text in ("❤️", "👎"):
@@ -95,10 +96,10 @@ async def reaction_processing2(message: types.Message, id: int, f: User, l: User
 
     # если положительная реакция
     elif message.text == "❤️" and (l.id > 999) and l.visible and not f.banned and (l.id not in await db.get_liked(id)):
-        if len(l.liked) >= liked_buffer:
+        if len(l.liked) >= settings.LIKED_BUFFER:
             await db.update_user(l.id, visible=False)
         if id not in l.liked:
-            l = await db.update_user(l.id, liked=await db.filter_liked(l.liked+[id]))
+            l = await db.update_user(l.id, liked=await db.filter_liked(l.liked + [id]))
             if len(l.liked) in [1, 5, 10, 15]:
                 try:
                     await bot.send_message(text=t.liked(l), chat_id=l.id, reply_markup=kb.cont())
@@ -114,21 +115,20 @@ async def random_form(message: types.Message, id: int, f: User):
 
     # выводим людей из буфера
     if f.liked:
-        await db.update_user(id, view_count=f.view_count+1)
+        await db.update_user(id, view_count=f.view_count + 1)
         l = await db.get_user(f.liked[0])
         await rd.update_data(id, liked_id=l.id)
-        await bot.send_photo(photo=l.photo, chat_id=id, caption=t.like_list(f)+t.cap(l), reply_markup=kb.react())
+        await bot.send_photo(photo=l.photo, chat_id=id, caption=t.like_list(f) + t.cap(l), reply_markup=kb.react())
         return await rd.update_state(id, Wait.form_reaction)
 
     # обновляем количество просмотров
     if datetime.now(tz=timezone(timedelta(hours=3))) - f.active_date < timedelta(hours=18):
-        f = await db.update_user(id, view_count=f.view_count+1)
+        f = await db.update_user(id, view_count=f.view_count + 1)
     else:
         f = await db.update_user(id, active_date=datetime.now(), view_count=1)
 
-
-    if f.view_count > daily_views:
-        await message.answer(t.enough()+"\n\n"+t.menu_main_text, reply_markup=kb.key_123())
+    if f.view_count > settings.DAILY_VIEWS:
+        await message.answer(t.enough() + "\n\n" + t.menu_main_text, reply_markup=kb.key_123())
         return await rd.update_state(id, Wait.menu_answer)
     elif f.view_count % 20 == 0:
         if (await bot.get_chat(id)).has_private_forwards and (not (await bot.get_chat(id)).username):

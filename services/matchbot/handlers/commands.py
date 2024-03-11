@@ -2,7 +2,7 @@ from asyncio import sleep
 
 from aiogram import types
 
-from config import dp, bot, admins
+from config import settings, dp, bot
 
 import decor.keyboard as kb
 import decor.text as t
@@ -24,7 +24,7 @@ async def command_info(message: types.Message):
 @dp.message_handler(commands="admin", state="*")
 async def command_admin(message: types.Message):
     id = message.from_user.id
-    if id in admins:
+    if id == settings.SUPPORT_ID:
         await message.answer("Кидай id пользователя")
         await rd.update_state(id, Wait.admin)
     else:
@@ -36,7 +36,7 @@ async def command_admin(message: types.Message):
 @dp.message_handler(commands="restart", state="*")
 async def command_restart(message: types.Message):
     id = message.from_user.id
-    if id not in admins:
+    if id == settings.SUPPORT_ID:
         await message.answer("Данная функция вам недоступна")
         await message.answer(t.menu_main_text, reply_markup=kb.key_123())
         await rd.update_state(id, Wait.menu_answer)

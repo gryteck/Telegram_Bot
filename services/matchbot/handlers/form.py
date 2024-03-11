@@ -4,7 +4,7 @@ import decor.keyboard as kb
 import decor.text as t
 from aiogram import types, exceptions
 
-from config import dp, bot, supp_id, media_groups
+from config import dp, bot, media_groups, settings
 from db.crud import Postgre as db
 from db.redis_api import RedisDB as rd
 from db.states import Wait
@@ -145,10 +145,10 @@ async def set_photo(message: types.Message):
         f = await db.update_user(id, username=message.from_user.username, gender=f.gender, interest=f.interest,
                                  name=f.name, age=f.age, photo=f.photo, text=f.text)
         if not f.banned:
-            await bot.send_photo(photo=f.photo, caption=f"#upd {id} \n"+t.cap(f), chat_id=supp_id)
+            await bot.send_photo(photo=f.photo, caption=f"#upd {id} \n" + t.cap(f), chat_id=settings.SUPPORT_ID)
     else:
         f = await db.create_user(f.username, id, f.gender, f.interest, f.name, f.age, f.photo, f.text)
-        await bot.send_photo(photo=f.photo, caption=f"#new {id} \n" + t.cap(f), chat_id=supp_id)
+        await bot.send_photo(photo=f.photo, caption=f"#new {id} \n" + t.cap(f), chat_id=settings.SUPPORT_ID)
     await message.answer(t.form)
     await bot.send_photo(photo=f.photo, caption=t.cap(f), chat_id=id)
     await message.answer(t.menu_main_text, reply_markup=kb.key_123())
@@ -182,7 +182,8 @@ async def change_photo(message: types.Message):
         await rd.update_data(id, username=message.from_user.username, photo=message.photo[-1].file_id)
         await db.update_user(id, photo=message.photo[-1].file_id)
         f = await db.get_user(id)
-        await bot.send_photo(photo=f.photo, caption=t.adm_cap(f, "#upd"), chat_id=supp_id, reply_markup=kb.admin(f))
+        await bot.send_photo(photo=f.photo, caption=t.adm_cap(f, "#upd"), chat_id=settings.SUPPORT_ID,
+                             reply_markup=kb.admin(f))
     elif message.text != "Оставить текущее":
         return await message.answer(t.invalid_answer)
     f = await db.get_user(id)
@@ -204,7 +205,7 @@ async def change_text(message: types.Message):
         f = await db.update_user(id, text=text)
         await rd.update_data(id, text=text)
         if not f.banned:
-            await bot.send_photo(photo=f.photo, caption=f"#upd {id}\n" + t.cap(f), chat_id=supp_id)
+            await bot.send_photo(photo=f.photo, caption=f"#upd {id}\n" + t.cap(f), chat_id=settings.SUPPORT_ID)
     f = await db.get_user(id)
     await bot.send_photo(photo=f.photo, caption=t.cap(f), chat_id=id)
     await message.answer(t.menu_main_text, reply_markup=kb.key_123())
