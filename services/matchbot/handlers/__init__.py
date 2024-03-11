@@ -1,4 +1,5 @@
 from .commands import dp
+from .callbacks import dp
 from .admin import dp
 from .claims import dp
 from .form import dp

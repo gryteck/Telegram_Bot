@@ -1,10 +1,16 @@
 from aiogram import types
 
+from db.models import User
 
-def start():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    buttons = ["Получить QR код", "Начать знакомства"]
-    return keyboard.add(*buttons)
+
+def admin(f: User):
+    keyboard = types.InlineKeyboardMarkup()
+    button1 = types.InlineKeyboardButton(text="Refresh ↩️", callback_data=f"refresh:{f.id}")
+    if f.banned:
+        button2 = types.InlineKeyboardButton(text="Enable ✅", callback_data=f"enable:{f.id}")
+    else:
+        button2 = types.InlineKeyboardButton(text="Disable ❌", callback_data=f"disable:{f.id}")
+    return keyboard.row(button1, button2)
 
 
 def key_123():
@@ -88,8 +94,3 @@ def rules():
     markup = types.InlineKeyboardMarkup()
     return markup.add(types.InlineKeyboardButton(text="Правила посещения", url=button_url))
 
-
-def qr_menu():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="Что дальше?")
-    buttons = ["Начать знакомства", "Изменить данные"]
-    return keyboard.row(*buttons)

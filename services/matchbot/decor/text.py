@@ -177,18 +177,11 @@ def cap(a: User) -> str:
         return f"{a.name}, {a.age}, {a.text}"
 
 
-def adm_cap(a: User) -> str:
-    if a.banned:
-        state = "banned"
-    elif a.visible:
-        state = "active"
-    else:
-        state = "inactive"
-    return f"{cap(a)}\n\nState: {state}\nClaims: {a.claims}\nLast entry: {a.active_date.date()}"
-
-
-def adm_promo(a: User) -> str:
-    return f"Имя {a.name}\nПромокод {a.promocode}\nКоличество посещений {a.visit_count}"
+def adm_cap(a: User, tag: str = None) -> str:
+    text = f"{cap(a)}\n\n" \
+           f"{'active' if a.visible else 'inactive'} / {'disabled' if a.banned else 'enabled'}\n" \
+           f"Last entry: {a.active_date.date()}"
+    return (f'{tag} {a.id}\n' if tag else f'#adm {a.id}\n') + text
 
 
 def miss_u() -> str:

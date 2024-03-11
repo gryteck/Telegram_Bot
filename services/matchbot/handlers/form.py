@@ -182,8 +182,7 @@ async def change_photo(message: types.Message):
         await rd.update_data(id, username=message.from_user.username, photo=message.photo[-1].file_id)
         await db.update_user(id, photo=message.photo[-1].file_id)
         f = await db.get_user(id)
-        if not f.banned:
-            await bot.send_photo(photo=f.photo, caption=f"#upd {id} \n" + t.cap(f), chat_id=supp_id)
+        await bot.send_photo(photo=f.photo, caption=t.adm_cap(f, "#upd"), chat_id=supp_id, reply_markup=kb.admin(f))
     elif message.text != "Оставить текущее":
         return await message.answer(t.invalid_answer)
     f = await db.get_user(id)

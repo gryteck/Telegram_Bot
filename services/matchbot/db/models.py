@@ -33,6 +33,7 @@ class User(Base):
 
 class Actions(Base):
     __tablename__ = 'actions'
+
     action_id: Mapped[int] = mapped_column(SmallInteger, primary_key=True, index=True)
     from_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
     action_type: Mapped[str] = mapped_column(Text, nullable=False)

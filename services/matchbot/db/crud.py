@@ -95,7 +95,7 @@ class Postgre:
     #                 return user
 
     @classmethod
-    async def update_user(cls, id, **kwargs):
+    async def update_user(cls, id, **kwargs) -> User:
         async with pg_session() as session:
             query = update(User).where(User.id == id).values(**kwargs).returning(User)
             result = await session.execute(query)
