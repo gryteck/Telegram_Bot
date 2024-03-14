@@ -24,7 +24,7 @@ async def command_info(message: types.Message):
 @dp.message_handler(commands="admin", state="*")
 async def command_admin(message: types.Message):
     if message.from_user.id == settings.SUPPORT_ID:
-        await message.answer("Кидай id пользователя")
+        await message.answer("Кидай id пользователя", reply_markup=types.ReplyKeyboardRemove())
 
         await rd.update_state(message.from_user.id, Wait.admin)
     else:

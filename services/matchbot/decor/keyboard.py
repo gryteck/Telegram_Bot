@@ -10,7 +10,16 @@ def admin(f: User):
         button2 = types.InlineKeyboardButton(text="Enable ✅", callback_data=f"enable:{f.id}")
     else:
         button2 = types.InlineKeyboardButton(text="Disable ❌", callback_data=f"disable:{f.id}")
-    return keyboard.row(button1, button2)
+    button3 = types.InlineKeyboardButton(text="Warn ⁉️", callback_data=f"warn:{f.id}")
+    return keyboard.row(button1, button2, button3)
+
+
+def admin_warn(f: User):
+    keyboard = types.InlineKeyboardMarkup()
+    button1 = types.InlineKeyboardButton(text="Picture", callback_data=f"image:{f.id}")
+    button2 = types.InlineKeyboardButton(text="Bio", callback_data=f"bio:{f.id}")
+    button3 = types.InlineKeyboardButton(text="Back", callback_data=f"back:{f.id}")
+    return keyboard.row(button1, button2, button3)
 
 
 def key_123():
