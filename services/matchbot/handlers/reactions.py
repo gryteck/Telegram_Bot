@@ -15,189 +15,191 @@ from db.redis_api import RedisDB as rd
 from db.states import Wait
 
 
-@dp.message_handler(state=Wait.cont)
-async def cont(message: types.Message):
-    if message.text in ('Продолжить', 'Вернуться назад', 'Сделано!'):
-        await random_form(message, id := message.from_user.id, await db.get_user(id))
-    else:
-        await message.answer(t.invalid_answer, reply_markup=kb.cont())
-
-
 @dp.message_handler(state=Wait.form_reaction)
 async def form_reaction(message: types.Message):
-    id = message.from_user.id
+    if not await reaction_message_processor(message):
+        return
+
+    f = await db.get_user(message.from_user.id)
+
+    try:
+        liked_id = (await rd.get_data(message.from_user.id)).liked_id
+        l = await db.get_user(liked_id)
+    except (AttributeError, KeyError, TypeError):
+        await random_form(message, f)
+        return
+
+    if buffer_is_not_empty(message, f, l):
+        await buffer_reaction_processing(message, f, l)
+        return
+
+    if await reaction_should_be_processed(message, f, l):
+        await reaction_processing(message, l)
+
+    await random_form(message, f)
+
+
+def buffer_is_not_empty(message: types.Message, f: User, l: User) -> bool:
+    return l.id in f.liked and message.text in ("❤️", "👎")
+
+
+async def reaction_should_be_processed(message: types.Message, f: User, l: User) -> bool:
+    return message.text == "❤️" and (l.id > 999) and l.visible and not f.banned and (
+                l.id not in await db.get_likes(message.from_user.id))
+
+
+async def reaction_message_processor(message: types.Message):
     if message.text not in ("💤", "❤️", "👎", "🚫"):
-        return await message.reply(t.invalid_answer, reply_markup=kb.react())
-    if message.text in ("Вернуться назад", "💤"):
+        await message.reply(t.invalid_answer, reply_markup=kb.react())
+        await rd.update_state(message.from_user.id, Wait.form_reaction)
+    elif message.text in ("Вернуться назад", "💤"):
         await message.answer("Подождем, пока кто-то увидит твою анкету")
         await message.answer(t.menu_main_text, reply_markup=kb.key_123())
-        return await rd.update_state(id, Wait.menu_answer)
+        await rd.update_state(message.from_user.id, Wait.menu_answer)
     elif message.text == "🚫":
         await message.answer(t.ban, reply_markup=kb.key_1234())
-        return await rd.update_state(id, Wait.claim)
-    f = await db.get_user(id)
-    try:
-        l = await db.get_user((await rd.get_data(id)).liked_id)
-    except (AttributeError, KeyError, TypeError):
-        return await random_form(message, id, f)
-
-    # обработка реакции
-    if l.id in f.liked and message.text in ("❤️", "👎"):
-        await buffer_processing(message, id, f, l)
-    elif message.text == "❤️" and (l.id > 999) and l.visible and not f.banned and (
-            l.id not in await db.filter_liked(id)):
-        await reaction_processing(message, id, f, l)
-
-    # вывод случайной анкеты
-    await random_form(message, id, f)
+        await rd.update_state(message.from_user.id, Wait.claim)
+    else:
+        return True
 
 
-async def buffer_processing(message: types.Message, id: int, f: User, l: User):
+async def buffer_reaction_processing(message: types.Message, f: User, l: User):
     f.liked.remove(l.id)
-    f = await db.update_user(id, liked=f.liked)
+
+    f = await db.update_user(message.from_user.id, liked=f.liked)
+
     if message.text == "❤️":
-        await db.create_action(id, l.id, 'match')
-        await match_message(message, id, f, l)
+        await db.create_action(message.from_user.id, l.id, 'match')
+        await match_message(message, f, l)
+        return
+
+    await random_form(message.from_user.id, f)
 
 
-async def reaction_processing(message: types.Message, id: int, f: User, l: User):
-    if id not in l.liked:
-        l = await db.update_user(l.id, liked=await db.filter_liked(l.liked + [id]))
+async def reaction_processing(message: types.Message, l: User):
+    """Обработка реакции"""
+    if message.from_user.id not in l.liked:
+        if len(l.liked) >= settings.LIKED_BUFFER:
+            await db.update_user(l.id, visible=False)
+
+        l = await db.update_user(l.id, liked=await db.filter_liked(l.liked + [message.from_user.id]))
         if len(l.liked) in [1, 5, 10, 15]:
             try:
                 await bot.send_message(text=t.liked(l), chat_id=l.id, reply_markup=kb.cont())
                 await rd.update_state(l.id, Wait.cont)
-                await db.create_action(id, l.id, 'like')
+                await db.create_action(message.from_user.id, l.id, 'like')
             except (exceptions.BotBlocked, exceptions.ChatNotFound, exceptions.UserDeactivated):
                 await db.update_user(l.id, visible=False)
 
 
-async def get_user_from_liked(message: types.Message, id: int, f: User, l: User):
-    # фильтруем буфер
-    f = await db.update_user(id, liked=await db.filter_liked(f.liked))
+async def get_user_from_buffer(message: types.Message, f: User):
+    """Выводит людей из буфера"""
+    await db.update_user(id=message.from_user.id, view_count=f.view_count + 1)
 
-    # выводим людей из буфера
-    if (f := await db.update_user(id, liked=await db.filter_liked(f.liked))).liked:
-        await db.update_user(id, view_count=f.view_count + 1)
-        l = await db.get_user(f.liked[0])
-        await rd.update_data(id, liked_id=l.id)
-        await bot.send_photo(photo=l.photo, chat_id=id, caption=t.like_list(f) + t.cap(l), reply_markup=kb.react())
-        return await rd.update_state(id, Wait.form_reaction)
+    l = await db.get_user(f.liked[0])
 
-
-async def reaction_processing2(message: types.Message, id: int, f: User, l: User):
-    # если реакция была на пользователя из буфера
-    if l.id in f.liked and message.text in ("❤️", "👎"):
-        f.liked.remove(l.id)
-        f = await db.update_user(id, liked=f.liked)
-        if message.text == "❤️":
-            await db.create_action(id, l.id, 'match')
-            await match_message(message, id, f, l)
-
-    # если положительная реакция
-    elif message.text == "❤️" and (l.id > 999) and l.visible and not f.banned and (l.id not in await db.get_liked(id)):
-        if len(l.liked) >= settings.LIKED_BUFFER:
-            await db.update_user(l.id, visible=False)
-        if id not in l.liked:
-            l = await db.update_user(l.id, liked=await db.filter_liked(l.liked + [id]))
-            if len(l.liked) in [1, 5, 10, 15]:
-                try:
-                    await bot.send_message(text=t.liked(l), chat_id=l.id, reply_markup=kb.cont())
-                    await rd.update_state(l.id, Wait.cont)
-                    await db.create_action(id, l.id, 'like')
-                except (exceptions.BotBlocked, exceptions.ChatNotFound, exceptions.UserDeactivated):
-                    await db.update_user(l.id, visible=False)
+    await rd.update_data(message.from_user.id, liked_id=l.id)
+    await bot.send_photo(photo=l.photo, chat_id=message.from_user.id, caption=t.like_list(f) + t.cap(l),
+                         reply_markup=kb.react())
+    await rd.update_state(message.from_user.id, Wait.form_reaction)
+    return
 
 
-async def random_form(message: types.Message, id: int, f: User):
-    # фильтруем буфер
-    f = await db.update_user(id, liked=await db.filter_liked(f.liked))
-
-    # выводим людей из буфера
-    if f.liked:
-        await db.update_user(id, view_count=f.view_count + 1)
-        l = await db.get_user(f.liked[0])
-        await rd.update_data(id, liked_id=l.id)
-        await bot.send_photo(photo=l.photo, chat_id=id, caption=t.like_list(f) + t.cap(l), reply_markup=kb.react())
-        return await rd.update_state(id, Wait.form_reaction)
-
-    # обновляем количество просмотров
+async def update_view_count(message: types.Message, f: User) -> User:
+    """Обновляет количество просмотров"""
     if datetime.now(tz=timezone(timedelta(hours=3))) - f.active_date < timedelta(hours=18):
-        f = await db.update_user(id, view_count=f.view_count + 1)
-    else:
-        f = await db.update_user(id, active_date=datetime.now(), view_count=1)
+        return await db.update_user(message.from_user.id, view_count=f.view_count + 1)
+
+    return await db.update_user(message.from_user.id, active_date=datetime.now(), view_count=1)
+
+
+async def random_form(message: types.Message, f: User):
+    """Выводит рандомную анкету"""
+    f = await db.update_user(message.from_user.id, liked=await db.filter_liked(f.liked))
+
+    if f.liked:
+        await get_user_from_buffer(message, f)
+        return
+
+    f = await update_view_count(message, f)
 
     if f.view_count > settings.DAILY_VIEWS:
         await message.answer(t.enough() + "\n\n" + t.menu_main_text, reply_markup=kb.key_123())
-        return await rd.update_state(id, Wait.menu_answer)
-    elif f.view_count % 20 == 0:
-        if (await bot.get_chat(id)).has_private_forwards and (not (await bot.get_chat(id)).username):
-            await bot.send_photo(photo=open(f"images/br.jpg", "rb"), chat_id=id, caption=t.has_private_forwards(),
-                                 reply_markup=kb.custom("Сделано!"))
+        await rd.update_state(message.from_user.id, Wait.menu_answer)
+        return
+
+    if f.view_count % 15 == 0:
+        if (await bot.get_chat(message.from_user.id)).has_private_forwards and (
+                not (await bot.get_chat(message.from_user.id)).username):
+            await bot.send_photo(photo=open(f"images/br.jpg", "rb"), chat_id=message.from_user.id,
+                                 caption=t.has_private_forwards(), reply_markup=kb.custom("Сделано!"))
             await rd.update_state(f.id, Wait.cont)
             return
-        return await random_message(message, id, await db.get_user(id))
-    else:
-        try:
-            r = await db.get_random_user(id)
-            await rd.update_data(id, liked_id=r.id)
-            await bot.send_photo(photo=r.photo, caption=t.cap(r), chat_id=id, reply_markup=kb.react())
-            return await rd.update_state(id, Wait.form_reaction)
-        except ValueError:
-            await message.answer(t.no_found)
-            await bot.send_photo(photo=f.photo, caption=t.cap(f), chat_id=id)
-            await message.answer(t.my_form_text, reply_markup=kb.key_1234())
-            return await rd.update_state(id, Wait.my_form_answer)
+        await random_message(message, await db.get_user(message.from_user.id))
+        return
+
+    r = await db.get_random_user(message.from_user.id)
+
+    await rd.update_state(message.from_user.id, Wait.form_reaction)
+
+    if r is None:
+        await message.answer(t.no_found)
+        await bot.send_photo(photo=f.photo, caption=t.cap(f), chat_id=message.from_user.id)
+        await message.answer(t.my_form_text, reply_markup=kb.key_1234())
+
+    await rd.update_data(message.from_user.id, liked_id=r.id)
+
+    await bot.send_photo(photo=r.photo, caption=t.cap(r), chat_id=message.from_user.id, reply_markup=kb.react())
+    await rd.update_state(message.from_user.id, Wait.form_reaction)
 
 
-async def random_message(message: types.Message, id: int, f: User):
+async def random_message(message: types.Message, f: User):
     await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
     await sleep(1)
-    if f.view_count % 80 == 0:
+
+    if f.view_count % 60 == 0:
         await message.answer(t.day_fact(), reply_markup=kb.cont())
-    elif f.view_count % 60 == 0:
+    elif f.view_count % 45 == 0:
         await message.answer(t.notice, reply_markup=kb.cont())
-    elif f.view_count % 20 == 0:
-        await bot.send_photo(photo=open(f"images/promo/{random.randint(1, 15)}.jpg", "rb"), caption=t.ad(), chat_id=id,
-                             reply_markup=kb.cont(), parse_mode="HTML")
-    return await rd.update_state(id, Wait.cont)
+    elif f.view_count % 15 == 0:
+        await bot.send_photo(photo=open(f"images/promo/{random.randint(1, 15)}.jpg", "rb"), caption=t.ad(),
+                             chat_id=message.from_user.id, reply_markup=kb.cont(), parse_mode="HTML")
+
+    await rd.update_state(message.from_user.id, Wait.cont)
 
 
-async def match_message(message: types.Message, id: int, f: User, l: User):
+async def match_message(message: types.Message, f: User, l: User):
     # sending msg to l
     try:
-        if (username := (await bot.get_chat(id)).username) is not None:
+        if (username := (await bot.get_chat(message.from_user.id)).username) is not None:
             await bot.send_photo(photo=f.photo, chat_id=l.id, caption=t.cap(f), reply_markup=kb.match(username))
             await bot.send_message(text=t.like_match(), chat_id=l.id, reply_markup=kb.cont())
-        elif not (await bot.get_chat(id)).has_private_forwards:
-            await bot.send_photo(photo=f.photo, chat_id=l.id, caption=t.cap(f), reply_markup=kb.match(id))
+        elif not (await bot.get_chat(message.from_user.id)).has_private_forwards:
+            await bot.send_photo(photo=f.photo, chat_id=l.id, caption=t.cap(f),
+                                 reply_markup=kb.match(message.from_user.id))
             await bot.send_message(text=t.like_match(), chat_id=l.id, reply_markup=kb.cont())
         else:
-            await bot.send_photo(photo=open(f"images/br.jpg", "rb"), chat_id=id, caption=t.bad_request(),
-                                 reply_markup=kb.cont())
-            await rd.update_state(id, Wait.cont)
-            await bot.send_message(text='Упс, у пользователя ограничения', chat_id=l.id, reply_markup=kb.cont())
-            await rd.update_state(l.id, Wait.cont)
+            await bot.send_photo(photo=open(f"images/br.jpg", "rb"), chat_id=message.from_user.id,
+                                 caption=t.bad_request(), reply_markup=kb.cont())
+            await rd.update_state(message.from_user.id, Wait.cont)
             return
     except (exceptions.BotBlocked, exceptions.ChatNotFound, exceptions.UserDeactivated):
         await db.update_user(l.id, visible=False)
+        await message.answer('Упс, у пользователя ограничения', reply_markup=kb.cont())
+        await rd.update_state(message.from_user.id, Wait.cont)
+        return
 
     # sending message to f
     if (username := (await bot.get_chat(l.id)).username) is not None:
-        await bot.send_message(text=t.like_match(), chat_id=id, reply_markup=kb.match(username))
+        await bot.send_message(text=t.like_match(), chat_id=message.from_user.id, reply_markup=kb.match(username))
     elif not (await bot.get_chat(l.id)).has_private_forwards:
-        await bot.send_message(text=t.like_match(), chat_id=id, reply_markup=kb.match(l.id))
+        await bot.send_message(text=t.like_match(), chat_id=message.from_user.id, reply_markup=kb.match(l.id))
     else:
         try:
             await bot.send_photo(photo=open(f"images/br.jpg", "rb"), chat_id=l.id, caption=t.bad_request(),
                                  reply_markup=kb.cont())
             await rd.update_state(l.id, Wait.cont)
             await message.answer('Упс, у пользователя ограничения', reply_markup=kb.cont())
-            await rd.update_state(f.id, Wait.cont)
+            await rd.update_state(message.from_user.id, Wait.cont)
         except (exceptions.BotBlocked, exceptions.ChatNotFound, exceptions.UserDeactivated):
             await db.update_user(l.id, visible=False)
-
-
-@dp.callback_query_handler(lambda call: True)
-async def kekat(callback_query: types.CallbackQuery):
-    await bot.send_message(chat_id=callback_query.message.chat.id, text=f"KEEEEEEEK")

@@ -25,7 +25,9 @@ async def admin_callback(callback_query: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data.startswith('refresh:'), state='*')
 async def admin_refresh(callback_query: types.CallbackQuery):
     action, id = callback_query.data.split(':')
+
     f = await db.get_user(int(id))
+
     try:
         return await callback_query.message.edit_caption(caption=t.adm_cap(f), reply_markup=kb.admin(f))
     except Exception:

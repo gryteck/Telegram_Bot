@@ -35,7 +35,7 @@ class Postgre:
             return user.scalars().one()
 
     @classmethod
-    async def get_liked(cls, id: int) -> list:
+    async def get_likes(cls, id: int) -> list:
         async with pg_session() as session:
             query = select(Actions.to_id).filter(Actions.from_id == id).filter(Actions.action_type == 'like')
             rows = await session.execute(query)
@@ -53,9 +53,10 @@ class Postgre:
         async with pg_session() as session:
             user = await Postgre.get_user(id)
             if user.interest == 'Девушки':
-                query = select(User).filter(User.id != id, User.age >= user.age - 5, User.age <= user.age + 2,
-                                            User.banned.is_(False), User.visible.is_(True),
-                                            User.gender == 'Девушка').order_by(func.random()).limit(1)
+                query = select(User).filter(
+                    User.id != id, User.age >= user.age - 5, User.age <= user.age + 2,
+                    User.banned.is_(False), User.visible.is_(True), User.gender == 'Девушка'
+                ).order_by(func.random()).limit(1)
                 user = await session.execute(query)
                 return user.scalar_one_or_none()
             else:
@@ -95,7 +96,7 @@ class Postgre:
     #                 return user
 
     @classmethod
-    async def update_user(cls, id, **kwargs) -> User:
+    async def update_user(cls, id: int, **kwargs) -> User:
         async with pg_session() as session:
             query = update(User).where(User.id == id).values(**kwargs).returning(User)
             result = await session.execute(query)

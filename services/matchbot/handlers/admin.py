@@ -7,21 +7,14 @@ from config import dp, bot
 from db.crud import Postgre as db
 from db.redis_api import RedisDB as rd
 from db.states import Wait
-from db.models import User
 
 
 @dp.message_handler(state=Wait.admin)
 async def get_ban_list(message: types.Message):
-    id = message.from_user.id
     try:
         l = await db.get_user(int(message.text))
-        await rd.update_data(id, liked_id=l.id)
-        await bot.send_photo(photo=l.photo, caption=t.adm_cap(l), chat_id=id, reply_markup=kb.admin(l))
-        await rd.update_state(id, Wait.admin)
     except (ValueError, IndexError, TypeError):
-        if message.text not in ("↩️", "✅", "❌", "⁉️"):
-            return await message.answer("Ты че мудришь, норм отвечай")
-        liked_id = (await rd.get_data(id)).liked_id
+        liked_id = (await rd.get_data(message.from_user.id)).liked_id
         if message.text == "✅":
             await db.update_user(liked_id, banned=False)
         elif message.text == "❌":
@@ -34,5 +27,14 @@ async def get_ban_list(message: types.Message):
             except exceptions.BotBlocked:
                 await db.update_user(liked_id, visible=False)
                 await message.answer("Пользователь решил скрыться")
+        else:
+            await message.answer("Ты че мудришь, норм отвечай")
+            return
+
         await message.answer("Жду новый id")
-        await rd.update_state(id, Wait.admin)
+    else:
+        await rd.update_data(message.from_user.id, liked_id=l.id)
+        await bot.send_photo(photo=l.photo, caption=t.adm_cap(l), chat_id=message.from_user.id,
+                             reply_markup=kb.admin(l))
+    finally:
+        await rd.update_state(message.from_user.id, Wait.admin)

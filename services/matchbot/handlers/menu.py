@@ -14,19 +14,27 @@ from db.states import Wait
 
 @dp.message_handler(state=Wait.menu_answer)
 async def menu_answer(message: types.Message):
-    id = message.from_user.id
-    f = await db.get_user(id)
+    f = await db.get_user(message.from_user.id)
+
     if message.text == "1":
-        await random_form(message, id, f)
+        await random_form(message, f)
     elif message.text == "2":
-        await bot.send_photo(photo=f.photo, caption=t.cap(f), chat_id=id)
+        await bot.send_photo(photo=f.photo, caption=t.cap(f), chat_id=message.from_user.id)
         await message.answer(t.my_form_text, reply_markup=kb.key_1234())
-        await rd.update_state(id, Wait.my_form_answer)
+        await rd.update_state(message.from_user.id, Wait.my_form_answer)
     elif message.text == "3":
         await message.answer(t.delete_q(f), reply_markup=kb.yes_no())
-        await rd.update_state(id, Wait.delete_confirm)
+        await rd.update_state(message.from_user.id, Wait.delete_confirm)
     else:
-        return await message.reply(t.invalid_answer)
+        await message.reply(t.invalid_answer)
+
+
+@dp.message_handler(state=Wait.cont)
+async def cont(message: types.Message):
+    if message.text in ('Продолжить', 'Вернуться назад', 'Сделано!'):
+        await random_form(message, await db.get_user(message.from_user.id))
+    else:
+        await message.answer(t.invalid_answer, reply_markup=kb.cont())
 
 
 @dp.message_handler(state=Wait.get_photo, content_types=["photo"])

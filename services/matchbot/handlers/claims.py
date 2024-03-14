@@ -30,24 +30,27 @@ async def claim(message: types.Message):
         await rd.update_state(id, Wait.claim_text)
         return
     # вывод анкеты
-    await random_form(message, id, f)
+    await random_form(message, f)
 
 
 @dp.message_handler(state=Wait.claim_text)
 async def claim_text(message: types.Message):
-    id = message.from_user.id
+
     if message.text == "Вернуться назад":
         await message.answer(t.ban, reply_markup=kb.key_1234())
-        return await rd.update_state(id, Wait.claim)
-    data = await rd.get_data(id)
-    liked_id = data.liked_id
-    l = await db.get_user(liked_id)
-    f = await db.get_user(id)
-    if id not in l.noticed and l.id < 999:
-        await db.update_user(liked_id, noticed=l.noticed+[id], claims=l.claims+[3])
-        await db.create_action(id, l.id, 'claim')
+        await rd.update_state(message.from_user.id, Wait.claim)
+        return
+
+    liked_id = (await rd.get_data(message.from_user.id)).liked_id
+
+    l, f = await db.get_user(liked_id), await db.get_user(message.from_user.id)
+
+    if message.from_user.id not in l.noticed and l.id < 999:
+        await db.update_user(liked_id, noticed=l.noticed+[message.from_user.id], claims=l.claims+[3])
+        await db.create_action(message.from_user.id, l.id, 'claim')
+
     await bot.send_photo(photo=l.photo, chat_id=settings.SUPPORT_ID,
-                         caption=f"#claim {liked_id}\n{t.cap(l)}\n\nFrom {id}:\n{message.text}")
+                         caption=f"#claim {liked_id}\n{t.cap(l)}\n\nFrom {message.from_user.id}:\n{message.text}")
     await message.answer(t.ban_thq)
     # вывод анкеты
-    await random_form(message, id, f)
+    await random_form(message, f)
