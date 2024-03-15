@@ -1,8 +1,8 @@
-from asyncio import sleep
-
 from aiogram import types
 
 from config import settings, dp, bot
+
+from .activity import typing
 
 import decor.keyboard as kb
 import decor.text as t
@@ -14,8 +14,7 @@ from db.states import Wait
 
 @dp.message_handler(commands="info", state="*")
 async def command_info(message: types.Message):
-    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
-    await sleep(1)
+    await typing(message)
 
     await bot.send_photo(photo=open(f"images/info.png", "rb"), chat_id=message.from_user.id, caption=t.info,
                          reply_markup=types.ReplyKeyboardRemove(), parse_mode="HTML")
@@ -43,7 +42,7 @@ async def command_restart(message: types.Message):
         await rd.update_state(message.from_user.id, Wait.menu_answer)
 
 
-@dp.message_handler(commands=['start', 'matchbot'], state="*")
+@dp.message_handler(commands=('start', 'matchbot'), state="*")
 async def command_start(message: types.Message):
     if f := await db.exists_user(message.from_user.id):
         await message.answer("Вот твоя анкета")
@@ -55,8 +54,7 @@ async def command_start(message: types.Message):
         await rd.update_data(message.from_user.id, liked_id=message.from_user.id)
         await message.answer(t.instruction)
 
-        await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
-        await sleep(1)
+        await typing(message)
 
         await message.answer(t.set_gender, reply_markup=kb.gender())
 

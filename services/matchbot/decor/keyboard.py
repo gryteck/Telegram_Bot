@@ -24,14 +24,14 @@ def admin_warn(f: User):
 
 def key_123():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    buttons = ["1", "2", "3"]
+    buttons = ("1", "2", "3")
     return keyboard.add(*buttons)
 
 
 def react():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="Оцени",
                                          one_time_keyboard=True)
-    buttons = ["❤️", "🚫", "👎", "💤"]
+    buttons = ("❤️", "🚫", "👎", "💤")
     return keyboard.row(*buttons)
 
 
@@ -43,21 +43,21 @@ def custom(text: str) -> types.ReplyKeyboardMarkup:
 
 def key_1234():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    buttons = ["1", "2", "3", "4"]
+    buttons = ("1", "2", "3", "4")
     return keyboard.row(*buttons)
 
 
 def gender():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,
                                          input_field_placeholder="Укажи свой пол...")
-    buttons = ["Парень", "Девушка"]
+    buttons = ("Парень", "Девушка")
     return keyboard.add(*buttons)
 
 
 def interest():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,
                                          input_field_placeholder="Кого ищешь...")
-    buttons = ["Парни", "Девушки"]
+    buttons = ("Парни", "Девушки")
     return keyboard.add(*buttons)
 
 
@@ -68,7 +68,7 @@ def keep_empty():
 
 def yes_no():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    buttons = ["Да", "Нет"]
+    buttons = ("Да", "Нет")
     return keyboard.add(*buttons)
 
 
@@ -85,7 +85,7 @@ def back():
 
 def ban():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="id...")
-    buttons = ["✅", "❌", "⁉️", "↩️"]
+    buttons = ("✅", "❌", "⁉️", "↩️")
     return keyboard.row(*buttons)
 
 

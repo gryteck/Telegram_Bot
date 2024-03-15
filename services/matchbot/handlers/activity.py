@@ -1,3 +1,7 @@
+import asyncio
+from config import bot
+from aiogram import types
+
 
 async def check_inactive():
     # while True:
@@ -15,4 +19,9 @@ async def check_inactive():
     #             except (exceptions.BotBlocked, exceptions.ChatNotFound):
     #                 if user > 999: db.patch_visible(user, False)
     pass
+
+
+async def typing(message: types.Message):
+    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
+    await asyncio.sleep(1)
 

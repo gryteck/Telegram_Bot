@@ -18,7 +18,7 @@ async def admin_callback(callback_query: types.CallbackQuery):
 
     f = await db.update_user(f.id, banned=False) if f.banned else await db.update_user(f.id, banned=True)
 
-    await callback_query.message.edit_caption(caption=t.adm_cap(f), reply_markup=kb.admin(f))
+    await callback_query.message.edit_caption(caption=t.adm_cap(f, 'adm'), reply_markup=kb.admin(f))
     await bot.answer_callback_query(callback_query.id, f"User is {action}d")
 
 

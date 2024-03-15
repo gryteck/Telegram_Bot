@@ -1,5 +1,3 @@
-from asyncio import sleep
-
 import decor.keyboard as kb
 import decor.text as t
 from aiogram import types, exceptions
@@ -9,6 +7,7 @@ from db.crud import Postgre as db
 from db.redis_api import RedisDB as rd
 from db.states import Wait
 from .reactions import random_form
+from .activity import typing
 
 
 @dp.message_handler(state=Wait.my_form_answer)
@@ -40,16 +39,17 @@ async def my_form_answer(message: types.Message):
 
 @dp.message_handler(state=Wait.set_gender)
 async def choose_gender(message: types.Message):
-    if message.text not in ['Парень', 'Девушка']:
+    if message.text not in ('Парень', 'Девушка'):
         return await message.answer(t.invalid_answer)
     await rd.update_data(message.from_user.id, gender=message.text)
     await message.answer(t.set_interest(), reply_markup=kb.interest())
+
     await rd.update_state(message.from_user.id, Wait.set_interest)
 
 
 @dp.message_handler(state=Wait.set_interest)
 async def choose_interest(message: types.Message):
-    if message.text not in ['Парни', 'Девушки']:
+    if message.text not in ('Парни', 'Девушки'):
         return await message.reply(t.invalid_answer)
 
     await rd.update_data(message.from_user.id, interest=message.text)
@@ -61,8 +61,7 @@ async def choose_interest(message: types.Message):
     elif data.interest == "Девушки" and data.gender == "Девушка":
         await message.reply(t.q_girls())
 
-    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
-    await sleep(1)
+    await typing(message)
 
     try:
         await message.answer(t.set_name(), reply_markup=kb.custom(data.name))
@@ -76,21 +75,22 @@ async def choose_interest(message: types.Message):
 async def name(message: types.Message):
     if len(message.text) not in range(3, 12):
         return await message.answer("Недопустимая длина имени")
-    elif t.name_invalid(message.text):
+
+    if t.name_invalid(message.text):
         return await message.reply("Давай что-нибудь содержательней")
 
     await rd.update_data(message.from_user.id, name=message.text)
 
-    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
-    await sleep(1)
+    await typing(message)
 
     await message.reply(t.reply_name(message.text))
 
-    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
-    await sleep(1)
+    await typing(message)
+
+    data = await rd.get_data(message.from_user.id)
 
     try:
-        await message.answer('Сколько тебе лет?', reply_markup=kb.custom((await rd.get_data(message.from_user.id)).age))
+        await message.answer('Сколько тебе лет?', reply_markup=kb.custom(str(data.age)))
     except (AttributeError, KeyError, exceptions.BadRequest):
         await message.answer('Сколько тебе лет?', reply_markup=types.ReplyKeyboardRemove())
 
@@ -122,9 +122,11 @@ async def age(message: types.Message):
 async def text(message: types.Message):
     if len(str(message.text)) > 400:
         return await message.reply(t.text_out_of_range)
-    elif t.text_invalid(str(message.text)):
+
+    if t.text_invalid(str(message.text)):
         return await message.reply(t.text_not_meaningful)
-    elif str(message.text) not in ("Оставить текущее", "Сделано!"):
+
+    if str(message.text) not in ("Оставить текущее", "Сделано!"):
         await rd.update_data(message.from_user.id, text=str(message.text))
 
     # checking users privacy
@@ -137,12 +139,13 @@ async def text(message: types.Message):
     try:
         await bot.send_photo(photo=(await rd.get_data(message.from_user.id)).photo, chat_id=message.from_user.id,
                              caption=t.current_photo)
-        await message.answer(text=t.set_photo(), reply_markup=kb.custom("Оставить текущее"))
     except (AttributeError, KeyError):
         await bot.send_message(text=t.set_photo(), chat_id=message.from_user.id,
                                reply_markup=types.ReplyKeyboardRemove())
-
-    await rd.update_state(message.from_user.id, Wait.set_photo)
+    else:
+        await message.answer(text=t.set_photo(), reply_markup=kb.custom("Оставить текущее"))
+    finally:
+        await rd.update_state(message.from_user.id, Wait.set_photo)
 
 
 @dp.message_handler(state=Wait.set_photo, content_types=[types.ContentType.TEXT, types.ContentType.PHOTO])
@@ -161,14 +164,15 @@ async def set_photo(message: types.Message):
 
     if await db.exists_user(message.from_user.id):
         f = await db.update_user(message.from_user.id, username=message.from_user.username, gender=f.gender,
-                                 interest=f.interest, name=f.name, age=f.age, photo=f.photo, text=f.text)
-        if not f.banned:
-            await bot.send_photo(photo=f.photo, caption=f"#upd {message.from_user.id} \n" + t.cap(f),
-                                 chat_id=settings.SUPPORT_ID)
+                                 interest=f.interest, name=f.name, age=f.age, photo=f.photo, text=f.text, banned=True)
+
+        await bot.send_photo(photo=f.photo, caption=t.adm_cap(f, 'upd'), chat_id=settings.SUPPORT_ID,
+                             reply_markup=kb.admin(f))
     else:
         f = await db.create_user(f.username, message.from_user.id, f.gender, f.interest, f.name, f.age, f.photo, f.text)
-        await bot.send_photo(photo=f.photo, caption=f"#new {message.from_user.id} \n" + t.cap(f),
-                             chat_id=settings.SUPPORT_ID)
+        await bot.send_photo(photo=f.photo, caption=t.adm_cap(f, 'new'), chat_id=settings.SUPPORT_ID,
+                             reply_markup=kb.admin(f))
+
     await message.answer(t.form)
     await bot.send_photo(photo=f.photo, caption=t.cap(f), chat_id=message.from_user.id)
     await message.answer(t.menu_main_text, reply_markup=kb.key_123())
@@ -201,11 +205,14 @@ async def change_photo(message: types.Message):
         media_groups.append(message.media_group_id)
         await message.answer("Кидай только одну фотку)")
         return
-    elif message.content_type == 'photo':
+
+    if message.content_type == 'photo':
         await rd.update_data(id, username=message.from_user.username, photo=message.photo[-1].file_id)
-        await db.update_user(id, photo=message.photo[-1].file_id)
+        await db.update_user(id, photo=message.photo[-1].file_id, banned=True)
+
         f = await db.get_user(id)
-        await bot.send_photo(photo=f.photo, caption=t.adm_cap(f, "#upd"), chat_id=settings.SUPPORT_ID,
+
+        await bot.send_photo(photo=f.photo, caption=t.adm_cap(f, 'upd'), chat_id=settings.SUPPORT_ID,
                              reply_markup=kb.admin(f))
     elif message.text != "Оставить текущее":
         await message.answer(t.invalid_answer)
@@ -216,6 +223,7 @@ async def change_photo(message: types.Message):
     await message.answer(t.form)
     await bot.send_photo(photo=f.photo, caption=t.cap(f), chat_id=id)
     await message.answer(t.menu_main_text, reply_markup=kb.key_123())
+
     await rd.update_state(id, Wait.menu_answer)
 
 
@@ -227,7 +235,8 @@ async def change_text(message: types.Message):
         if len(text) > 400:
             await message.reply(t.text_out_of_range)
             return
-        elif t.text_invalid(text):
+
+        if t.text_invalid(text):
             await message.reply(t.text_not_meaningful)
             return
 
@@ -235,9 +244,8 @@ async def change_text(message: types.Message):
 
         await rd.update_data(message.from_user.id, text=text)
 
-        if not f.banned:
-            await bot.send_photo(photo=f.photo, caption=f"#upd {message.from_user.id}\n" + t.cap(f),
-                                 chat_id=settings.SUPPORT_ID)
+        await bot.send_photo(photo=f.photo, caption=t.adm_cap(f, 'upd'), chat_id=settings.SUPPORT_ID,
+                             reply_markup=kb.admin(f))
 
     f = await db.get_user(message.from_user.id)
 

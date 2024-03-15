@@ -1,5 +1,4 @@
 import random
-from asyncio import sleep
 from aiogram import types
 from aiogram.utils import exceptions
 from datetime import datetime, timezone, timedelta
@@ -9,6 +8,7 @@ from config import dp, bot, settings
 import decor.keyboard as kb
 import decor.text as t
 
+from .activity import typing
 from db.crud import User
 from db.crud import Postgre as db
 from db.redis_api import RedisDB as rd
@@ -154,8 +154,7 @@ async def random_form(message: types.Message, f: User):
 
 
 async def random_message(message: types.Message, f: User):
-    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
-    await sleep(1)
+    await typing(message)
 
     if f.view_count % 60 == 0:
         await message.answer(t.day_fact(), reply_markup=kb.cont())

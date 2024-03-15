@@ -176,11 +176,11 @@ def cap(a: User) -> str:
         return f"{a.name}, {a.age}, {a.text}"
 
 
-def adm_cap(a: User, tag: str = None) -> str:
-    text = f"{cap(a)}\n\n" \
+def adm_cap(a: User, tag: str) -> str:
+    text = f"#{tag} {cap(a)}\n\n" \
            f"{'active' if a.visible else 'inactive'} / {'disabled' if a.banned else 'enabled'}\n" \
            f"Last entry: {a.active_date.date()}"
-    return (f'{tag} {a.id}\n' if tag else f'#adm {a.id}\n') + text
+    return text
 
 
 def miss_u() -> str:
