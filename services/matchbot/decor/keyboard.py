@@ -1,9 +1,9 @@
 from aiogram import types
 
-from db.models import User
+from db.schemas import SUser
 
 
-def admin(f: User):
+def admin(f: SUser):
     keyboard = types.InlineKeyboardMarkup()
     button1 = types.InlineKeyboardButton(text="Refresh ↩️", callback_data=f"refresh:{f.id}")
     if f.banned:
@@ -14,7 +14,7 @@ def admin(f: User):
     return keyboard.row(button1, button2, button3)
 
 
-def admin_warn(f: User):
+def admin_warn(f: SUser):
     keyboard = types.InlineKeyboardMarkup()
     button1 = types.InlineKeyboardButton(text="Picture", callback_data=f"image:{f.id}")
     button2 = types.InlineKeyboardButton(text="Bio", callback_data=f"bio:{f.id}")

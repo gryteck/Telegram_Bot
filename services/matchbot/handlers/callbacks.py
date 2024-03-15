@@ -7,7 +7,6 @@ from config import dp, bot
 from db.crud import Postgre as db
 from db.redis_api import RedisDB as rd
 from db.states import Wait
-from db.models import User
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith(('enable', 'disable')), state='*')
@@ -29,7 +28,7 @@ async def admin_refresh(callback_query: types.CallbackQuery):
     f = await db.get_user(int(id))
 
     try:
-        return await callback_query.message.edit_caption(caption=t.adm_cap(f), reply_markup=kb.admin(f))
+        return await callback_query.message.edit_caption(caption=t.adm_cap(f, 'adm'), reply_markup=kb.admin(f))
     except Exception:
         await bot.answer_callback_query(callback_query.id, "User is up to date!")
 
@@ -40,7 +39,7 @@ async def admin_warn(callback_query: types.CallbackQuery):
 
     f = await db.get_user(int(id))
 
-    await callback_query.message.edit_caption(caption=t.adm_cap(f), reply_markup=kb.admin_warn(f))
+    await callback_query.message.edit_caption(caption=t.adm_cap(f, 'adm'), reply_markup=kb.admin_warn(f))
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith(('image', 'bio', 'back')), state='*')
@@ -57,4 +56,4 @@ async def admin_warn(callback_query: types.CallbackQuery):
             await db.update_user(f.id, visible=False)
             await bot.answer_callback_query(callback_query.id, "User left(")
 
-    await callback_query.message.edit_caption(caption=t.adm_cap(f), reply_markup=kb.admin(f))
+    await callback_query.message.edit_caption(caption=t.adm_cap(f, 'adm'), reply_markup=kb.admin(f))

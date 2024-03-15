@@ -9,7 +9,7 @@ import decor.keyboard as kb
 import decor.text as t
 
 from .activity import typing
-from db.crud import User
+from db.schemas import SUser
 from db.crud import Postgre as db
 from db.redis_api import RedisDB as rd
 from db.states import Wait
@@ -39,11 +39,11 @@ async def form_reaction(message: types.Message):
     await random_form(message, f)
 
 
-def buffer_is_not_empty(message: types.Message, f: User, l: User) -> bool:
+def buffer_is_not_empty(message: types.Message, f: SUser, l: SUser) -> bool:
     return l.id in f.liked and message.text in ("❤️", "👎")
 
 
-async def reaction_should_be_processed(message: types.Message, f: User, l: User) -> bool:
+async def reaction_should_be_processed(message: types.Message, f: SUser, l: SUser) -> bool:
     return message.text == "❤️" and (l.id > 999) and l.visible and not f.banned and (
                 l.id not in await db.get_likes(message.from_user.id))
 
@@ -63,7 +63,7 @@ async def reaction_message_processor(message: types.Message):
         return True
 
 
-async def buffer_reaction_processing(message: types.Message, f: User, l: User):
+async def buffer_reaction_processing(message: types.Message, f: SUser, l: SUser):
     f.liked.remove(l.id)
 
     f = await db.update_user(message.from_user.id, liked=f.liked)
@@ -76,7 +76,7 @@ async def buffer_reaction_processing(message: types.Message, f: User, l: User):
     await random_form(message.from_user.id, f)
 
 
-async def reaction_processing(message: types.Message, l: User):
+async def reaction_processing(message: types.Message, l: SUser):
     """Обработка реакции"""
     if message.from_user.id not in l.liked:
         if len(l.liked) >= settings.LIKED_BUFFER:
@@ -92,7 +92,7 @@ async def reaction_processing(message: types.Message, l: User):
                 await db.update_user(l.id, visible=False)
 
 
-async def get_user_from_buffer(message: types.Message, f: User):
+async def get_user_from_buffer(message: types.Message, f: SUser):
     """Выводит людей из буфера"""
     await db.update_user(id=message.from_user.id, view_count=f.view_count + 1)
 
@@ -105,7 +105,7 @@ async def get_user_from_buffer(message: types.Message, f: User):
     return
 
 
-async def update_view_count(message: types.Message, f: User) -> User:
+async def update_view_count(message: types.Message, f: SUser) -> SUser:
     """Обновляет количество просмотров"""
     if datetime.now(tz=timezone(timedelta(hours=3))) - f.active_date < timedelta(hours=18):
         return await db.update_user(message.from_user.id, view_count=f.view_count + 1)
@@ -113,7 +113,7 @@ async def update_view_count(message: types.Message, f: User) -> User:
     return await db.update_user(message.from_user.id, active_date=datetime.now(), view_count=1)
 
 
-async def random_form(message: types.Message, f: User):
+async def random_form(message: types.Message, f: SUser):
     """Выводит рандомную анкету"""
     f = await db.update_user(message.from_user.id, liked=await db.filter_liked(f.liked))
 
@@ -153,7 +153,7 @@ async def random_form(message: types.Message, f: User):
     await rd.update_state(message.from_user.id, Wait.form_reaction)
 
 
-async def random_message(message: types.Message, f: User):
+async def random_message(message: types.Message, f: SUser):
     await typing(message)
 
     if f.view_count % 60 == 0:
@@ -167,7 +167,7 @@ async def random_message(message: types.Message, f: User):
     await rd.update_state(message.from_user.id, Wait.cont)
 
 
-async def match_message(message: types.Message, f: User, l: User):
+async def match_message(message: types.Message, f: SUser, l: SUser):
     # sending msg to l
     try:
         if (username := (await bot.get_chat(message.from_user.id)).username) is not None:

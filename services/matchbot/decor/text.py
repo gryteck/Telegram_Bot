@@ -1,7 +1,7 @@
 import random
 
 from config import settings
-from db.models import User
+from db.schemas import SUser
 
 hello_text = "Меня зовут Акира, я помогу найти интересных для тебя людей из Москвы"
 
@@ -57,7 +57,7 @@ instruction = "Небольшая инструкция по боту. Я буд�
               "(Анкеты могут повторяться из-за маленькой базы, приложение только набирает обороты)"
 
 
-def warning(action: str, f: User):
+def warning(action: str, f: SUser):
     if action == 'image':
         res = 'свою фотографию, она'
     else:
@@ -72,7 +72,7 @@ def warning(action: str, f: User):
     return res
 
 
-def delete_q(a: User) -> str:
+def delete_q(a: SUser) -> str:
     if a.gender == "Парень":
         return f"{a.name}, ты уверен, что хочешь покинуть нас? (μ_μ) \n\n" \
                f"❗Тебя никто не сможет лайкнуть\n❗Те, кого ты лайкал, не смогут ответить взаимностью("
@@ -152,7 +152,7 @@ def q_girls() -> str:
     return random.choice(["Значит по девчонкам...)", "Подруг ищешь, или не совсем?)", "Только не шали...)"])
 
 
-def liked(a: User) -> str:
+def liked(a: SUser) -> str:
     count = len(a.liked)
     if count == 1:
         return random.choice(["Кто-то тобой заинтересовался", "Псс, тебя лайкнули)"])
@@ -162,21 +162,21 @@ def liked(a: User) -> str:
         return f"{a.name}, {count} девушек из Москвы хотят с тобой познакомиться!"
 
 
-def like_list(a: User) -> str:
+def like_list(a: SUser) -> str:
     return random.choice(["Твоя анкета понравилась данному пользователю:",
                           "Смотри, кто тобой заинтересовался!",
                           "Данный пользователь хочет с тобой познакомиться!"
                           ]) + (f" (и еще {len(a.liked) - 1})" if len(a.liked) > 1 else "") + "\n\n"
 
 
-def cap(a: User) -> str:
+def cap(a: SUser) -> str:
     if a.text == '':
         return f"{a.name}, {a.age}"
     else:
         return f"{a.name}, {a.age}, {a.text}"
 
 
-def adm_cap(a: User, tag: str) -> str:
+def adm_cap(a: SUser, tag: str) -> str:
     text = f"#{tag} {cap(a)}\n\n" \
            f"{'active' if a.visible else 'inactive'} / {'disabled' if a.banned else 'enabled'}\n" \
            f"Last entry: {a.active_date.date()}"
