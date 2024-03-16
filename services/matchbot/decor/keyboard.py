@@ -102,4 +102,3 @@ def rules():
     button_url = 't.me/asiaparty'
     markup = types.InlineKeyboardMarkup()
     return markup.add(types.InlineKeyboardButton(text="Правила посещения", url=button_url))
-

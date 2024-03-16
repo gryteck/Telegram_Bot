@@ -3,9 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 from sqlalchemy import SmallInteger, BigInteger, Text, ARRAY, DateTime, Boolean
 from datetime import datetime
 
-
-class Base(DeclarativeBase):
-    pass
+from database import Base
 
 
 class User(Base):

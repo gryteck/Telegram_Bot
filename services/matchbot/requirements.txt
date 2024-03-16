@@ -12,3 +12,4 @@ python-dotenv~=1.0.0
 
 
 pydantic~=2.6.3
+alembic~=1.13.1
