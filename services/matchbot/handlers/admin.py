@@ -17,7 +17,7 @@ async def get_ban_list(message: types.Message):
         return
     else:
         await rd.update_data(message.from_user.id, liked_id=l.id)
-        await bot.send_photo(photo=l.photo, caption=t.adm_cap(l), chat_id=message.from_user.id,
+        await bot.send_photo(photo=l.photo, caption=t.adm_cap(l, 'adm'), chat_id=message.from_user.id,
                              reply_markup=kb.admin(l))
     finally:
         await rd.update_state(message.from_user.id, Wait.admin)

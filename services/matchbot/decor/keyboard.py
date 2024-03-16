@@ -83,12 +83,6 @@ def back():
     return keyboard.add("Вернуться назад")
 
 
-def ban():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="id...")
-    buttons = ("✅", "❌", "⁉️", "↩️")
-    return keyboard.row(*buttons)
-
-
 def match(id):
     if type(id) == int:
         button_url = f'tg://user?id={id}'

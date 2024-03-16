@@ -129,8 +129,7 @@ async def random_form(message: types.Message, f: SUser):
         return
 
     if f.view_count % 15 == 0:
-        if (await bot.get_chat(message.from_user.id)).has_private_forwards and (
-                not (await bot.get_chat(message.from_user.id)).username):
+        if (await bot.get_chat(message.from_user.id)).has_private_forwards and (not message.from_user.username):
             await bot.send_photo(photo=open(f"images/br.jpg", "rb"), chat_id=message.from_user.id,
                                  caption=t.has_private_forwards(), reply_markup=kb.custom("Сделано!"))
             await rd.update_state(f.id, Wait.cont)
@@ -170,7 +169,7 @@ async def random_message(message: types.Message, f: SUser):
 async def match_message(message: types.Message, f: SUser, l: SUser):
     # sending msg to l
     try:
-        if (username := (await bot.get_chat(message.from_user.id)).username) is not None:
+        if (username := message.from_user.username) is not None:
             await bot.send_photo(photo=f.photo, chat_id=l.id, caption=t.cap(f), reply_markup=kb.match(username))
             await bot.send_message(text=t.like_match(), chat_id=l.id, reply_markup=kb.cont())
         elif not (await bot.get_chat(message.from_user.id)).has_private_forwards:

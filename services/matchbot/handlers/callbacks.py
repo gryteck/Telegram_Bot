@@ -1,3 +1,4 @@
+import aiogram
 from aiogram import types
 from aiogram.utils import exceptions
 
@@ -29,7 +30,7 @@ async def admin_refresh(callback_query: types.CallbackQuery):
 
     try:
         return await callback_query.message.edit_caption(caption=t.adm_cap(f, 'adm'), reply_markup=kb.admin(f))
-    except Exception:
+    except aiogram.utils.exceptions.MessageNotModified:
         await bot.answer_callback_query(callback_query.id, "User is up to date!")
 
 
