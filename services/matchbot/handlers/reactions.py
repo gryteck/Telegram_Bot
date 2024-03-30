@@ -73,7 +73,7 @@ async def buffer_reaction_processing(message: types.Message, f: SUser, l: SUser)
         await match_message(message, f, l)
         return
 
-    await random_form(message.from_user.id, f)
+    await random_form(message, f)
 
 
 async def reaction_processing(message: types.Message, l: SUser):
