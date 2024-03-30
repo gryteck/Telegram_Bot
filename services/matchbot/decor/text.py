@@ -177,7 +177,7 @@ def cap(a: SUser) -> str:
 
 
 def adm_cap(a: SUser, tag: str) -> str:
-    text = f"#{tag} {cap(a)}\n\n" \
+    text = f"#{tag} {a.id}\n{cap(a)}\n\n" \
            f"{'active' if a.visible else 'inactive'} / {'disabled' if a.banned else 'enabled'}\n" \
            f"Last entry: {a.active_date.date()}"
     return text
