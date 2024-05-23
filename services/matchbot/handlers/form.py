@@ -10,6 +10,19 @@ from .reactions import random_form
 from .activity import typing
 
 
+async def update_user(message: types.Message):
+    if await db.exists_user(message.from_user.id):
+        f = await db.update_user(message.from_user.id, username=message.from_user.username, gender=f.gender,
+                                 interest=f.interest, name=f.name, age=f.age, photo=f.photo, text=f.text, banned=True)
+
+        await bot.send_photo(photo=f.photo, caption=t.adm_cap(f, 'upd'), chat_id=settings.SUPPORT_ID,
+                             reply_markup=kb.admin(f))
+    else:
+        f = await db.create_user(f.username, message.from_user.id, f.gender, f.interest, f.name, f.age, f.photo, f.text)
+        await bot.send_photo(photo=f.photo, caption=t.adm_cap(f, 'new'), chat_id=settings.SUPPORT_ID,
+                             reply_markup=kb.admin(f))
+
+
 @dp.message_handler(state=Wait.my_form_answer)
 async def my_form_answer(message: types.Message):
     if message.text == "1":
@@ -80,11 +93,8 @@ async def name(message: types.Message):
         return await message.reply("Давай что-нибудь содержательней")
 
     await rd.update_data(message.from_user.id, name=message.text)
-
     await typing(message)
-
     await message.reply(t.reply_name(message.text))
-
     await typing(message)
 
     data = await rd.get_data(message.from_user.id)
@@ -162,17 +172,6 @@ async def set_photo(message: types.Message):
 
     f = await rd.get_data(message.from_user.id)
 
-    if await db.exists_user(message.from_user.id):
-        f = await db.update_user(message.from_user.id, username=message.from_user.username, gender=f.gender,
-                                 interest=f.interest, name=f.name, age=f.age, photo=f.photo, text=f.text, banned=True)
-
-        await bot.send_photo(photo=f.photo, caption=t.adm_cap(f, 'upd'), chat_id=settings.SUPPORT_ID,
-                             reply_markup=kb.admin(f))
-    else:
-        f = await db.create_user(f.username, message.from_user.id, f.gender, f.interest, f.name, f.age, f.photo, f.text)
-        await bot.send_photo(photo=f.photo, caption=t.adm_cap(f, 'new'), chat_id=settings.SUPPORT_ID,
-                             reply_markup=kb.admin(f))
-
     await message.answer(t.form)
     await bot.send_photo(photo=f.photo, caption=t.cap(f), chat_id=message.from_user.id)
     await message.answer(t.menu_main_text, reply_markup=kb.key_123())
@@ -195,7 +194,8 @@ async def delete_confirm(message: types.Message):
         await message.reply(t.invalid_answer)
 
 
-@dp.message_handler(state=Wait.change_photo, content_types=[types.ContentType.TEXT, types.ContentType.PHOTO])
+@dp.message_handler(state=Wait.change_photo,
+                    content_types=[types.ContentType.TEXT, types.ContentType.PHOTO, types.ContentType.VIDEO])
 async def change_photo(message: types.Message):
     id = message.from_user.id
 
@@ -240,7 +240,7 @@ async def change_text(message: types.Message):
             await message.reply(t.text_not_meaningful)
             return
 
-        f = await db.update_user(message.from_user.id, text=text)
+        f = await db.update_user(message.from_user.id, text=text, banned=True)
 
         await rd.update_data(message.from_user.id, text=text)
 

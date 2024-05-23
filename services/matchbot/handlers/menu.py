@@ -37,7 +37,9 @@ async def cont(message: types.Message):
         await message.answer(t.invalid_answer, reply_markup=kb.cont())
 
 
-@dp.message_handler(state=Wait.get_photo, content_types=["photo"])
+@dp.message_handler(state=Wait.get_photo, content_types=["photo", "video"])
 async def get_photo(message: types.Message):
-    await message.answer(message.photo[-1].file_id)
-    await Wait.get_photo.set()
+    # video_info = message.video['thumbnail']
+    await message.answer(message.video.file_id)
+    await bot.send_video(message.from_user.id, video=message.video.file_id)
+    await rd.update_state(message.from_user.id, Wait.get_photo)

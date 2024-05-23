@@ -81,4 +81,4 @@ async def my_profile(message: types.Message):
 @dp.message_handler(commands="photo", state="*")
 async def get_photo(message: types.Message):
     await message.answer("Кидай фото")
-    await Wait.get_photo.set()
+    await rd.update_state(message.from_user.id, Wait.get_photo)
