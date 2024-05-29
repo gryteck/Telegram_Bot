@@ -6,7 +6,7 @@ class State:
         self.name = name
 
 
-class Wait:
+class States:
     start = State()
 
     finish = State()

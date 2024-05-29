@@ -1,18 +1,22 @@
+import asyncio
 
-async def check_inactive():
-    # while True:
-    #     await asyncio.sleep(sleep_time)
-    #     users = db.patch_daily_inactive_users()
-    #     if users is not None:
-    #         for user in users:
-    #             try: await bot.send_message(user, t.daily_miss_u(), reply_markup=kb.cont())
-    #             except (exceptions.BotBlocked, exceptions.ChatNotFound):
-    #                 if user > 999: db.patch_visible(user, False)
-    #     users = db.patch_inactive_users()
-    #     if users is not None:
-    #         for user in users:
-    #             try: await bot.send_message(user, t.miss_u(), reply_markup=kb.cont())
-    #             except (exceptions.BotBlocked, exceptions.ChatNotFound):
-    #                 if user > 999: db.patch_visible(user, False)
-    pass
+from aiogram import types
 
+import utils.keyboard as kb
+import utils.text as t
+from config import bot
+from db.redis_api import RedisDB as rd
+from db.states import States
+
+
+async def typing(message: types.Message):
+    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
+    await asyncio.sleep(1)
+
+
+async def has_private_messages(message: types.Message, id: int):
+    if (await bot.get_chat(id)).has_private_forwards and (not message.from_user.username):
+        await bot.send_photo(photo=open(f"images/br.jpg", "rb"), chat_id=message.from_user.id,
+                             caption=t.has_private_forwards(), reply_markup=kb.custom("Сделано!"))
+        await rd.update_state(f.id, States.cont)
+        return
