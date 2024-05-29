@@ -33,7 +33,7 @@ class Postgre:
         async with pg_session() as session:
             query = select(User).filter(User.id == id)
             user = await session.execute(query)
-            return user.scalars().one()
+            return user.scalar_one_or_none()
 
     @classmethod
     async def get_likes(cls, id: int) -> list:

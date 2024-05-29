@@ -21,8 +21,6 @@ class Settings(BaseSettings):
 
     TOKEN: str
 
-    SUPPORT_ID: int
-
     PG_HOST: str
     PG_PORT: int
     PG_USER: str

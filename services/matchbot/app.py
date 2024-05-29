@@ -1,6 +1,9 @@
 import logging
 
+from callbacks import dp
 from handlers import dp
+
+__all__ = ["dp"]
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARNING,
