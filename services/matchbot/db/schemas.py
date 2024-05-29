@@ -17,7 +17,7 @@ class SUser(BaseModel):
     active_date: datetime
     view_count: int
     claims_count: int
-    claims: list[int]
+    claims: list[str]
     banned: bool
     noticed: list[int]
     visible: bool
