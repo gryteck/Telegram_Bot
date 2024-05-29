@@ -14,21 +14,29 @@ from .reactions.random_form import random_form
 async def claim(message: types.Message):
     if message.text not in ("1", "2", "3", "4"):
         await message.reply("Нет такого варианта ответа")
-        return await rd.update_state(message.from_user.id, States.claim)
-    f, l = await db.get_user(message.from_user.id), await db.get_user(
-        (await rd.get_data(message.from_user.id)).liked_id)
-    if message.text in ["1", "2"]:
+        await rd.update_state(message.from_user.id, States.claim)
+        return
+
+    f = await db.get_user(message.from_user.id)
+    l = await db.get_user((await rd.get_data(message.from_user.id)).liked_id)
+
+    if message.text in ["1", "2", "3"]:
+
         if message.from_user.id not in l.noticed and l.id > 999:
-            f = await db.update_user(l.id, noticed=l.noticed+[message.from_user.id],
+            l = await db.update_user(l.id, noticed=l.noticed+[message.from_user.id],
                                      claims=l.claims+[message.text])
             await db.create_action(message.from_user.id, l.id, 'claim')
+
         if l.id in f.liked:
-            f = await db.update_user(message.from_user.id, liked=f.liked[:-1])
-        await message.answer(t.ban_thq)
+            f.liked.remove(l.id)
+            f = await db.update_user(message.from_user.id, liked=f.liked)
+
     if message.text == "3":
         await message.answer(t.claim_text, reply_markup=kb.back())
         await rd.update_state(message.from_user.id, States.claim_text)
         return
+
+    await message.answer(t.ban_thq)
     # вывод анкеты
     await random_form(message, f)
 
@@ -40,17 +48,13 @@ async def claim_text(message: types.Message):
         await rd.update_state(message.from_user.id, States.claim)
         return
 
-    liked_id = (await rd.get_data(message.from_user.id)).liked_id
-
-    l, f = await db.get_user(liked_id), await db.get_user(message.from_user.id)
-
-    if message.from_user.id not in l.noticed and l.id > 999:
-        await db.update_user(liked_id, noticed=l.noticed+[message.from_user.id], claims=l.claims+['3'])
-        await db.create_action(message.from_user.id, l.id, 'claim')
+    f = await db.get_user(message.from_user.id)
+    l = await db.get_user((await rd.get_data(message.from_user.id)).liked_id)
 
     await bot.send_photo(photo=l.photo, chat_id=settings.SUPPORT_ID,
                          caption=t.adm_cap(l, "claim")+f"\n\nFrom {message.from_user.id}\nMessage:{message.text}",
                          reply_markup=kb.admin(l))
+
     await message.answer(t.ban_thq)
 
     await random_form(message, f)
