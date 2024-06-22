@@ -28,6 +28,10 @@ async def reaction_message_processor(message: types.Message):
 
 @dp.message_handler(state=States.form_reaction)
 async def form_reaction(message: types.Message):
+    """
+    f это словарь с данными пользователя. тоесть наша анкета
+    l это словарь с данными другого пользователя, которого перед собой видит ,
+    """
     if not await reaction_message_processor(message):
         return
 

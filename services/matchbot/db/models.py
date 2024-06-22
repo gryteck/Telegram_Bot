@@ -26,7 +26,7 @@ class User(Base):
     view_count: Mapped[int] = mapped_column(SmallInteger, default=0, nullable=False)
     claims_count: Mapped[int] = mapped_column(SmallInteger, default=0, nullable=False)
     claims: Mapped[list] = mapped_column(ARRAY(Text), default=[], nullable=False)
-    banned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    banned: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     noticed: Mapped[list[int]] = mapped_column(ARRAY(BigInteger), default=[], nullable=False)
     visible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 

@@ -21,7 +21,7 @@ async def change_photo(message: types.Message):
 
     if message.content_type == 'photo':
         await rd.update_data(id, username=message.from_user.username, photo=message.photo[-1].file_id)
-        await db.update_user(id, photo=message.photo[-1].file_id, banned=True)
+        await db.update_user(id, photo=message.photo[-1].file_id, banned=True, visible=True)
 
         f = await db.get_user(id)
 
